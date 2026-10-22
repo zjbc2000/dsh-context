@@ -189,11 +189,13 @@ describe('OverviewPanel', () => {
     assert.ok(text(m.container).includes('Context Insights'))
     // The page chrome: the section's one scroll region carries the centered
     // content column — the page heading, then the 1:1 first row (the KPI
-    // band beside the last-7-days usage chart), the aggregate stats pair, and the insight/session body.
+    // band beside the last-7-days usage chart), the aggregate stats pair, the
+    // pricing disclosure band, and the insight/session body.
     const page = query(m.container, 'section.lc-ov-page')
     assert.equal(page.getAttribute('aria-label'), 'Context Insights')
     const scrollRows = [...query(m.container, '.lc-ov-pagecontent').children].map(el => el.className.split(' ')[0])
-    assert.deepEqual(scrollRows, ['lc-ov-pagehead', 'lc-ov-first', 'lc-ov-stats', 'lc-ov-body'])
+    assert.deepEqual(scrollRows, ['lc-ov-pagehead', 'lc-ov-first', 'lc-ov-stats', 'lc-card', 'lc-ov-body'])
+    assert.ok(query(m.container, '.lc-ov-pagecontent > .lc-ov-cost-card') !== null, 'the pricing band sits between the stats pair and the body')
     assert.equal(query(m.container, '.lc-ov-pagehead h1.lc-ov-pagetitle').textContent, 'Context Insights')
     assert.ok(query(m.container, '.lc-ov-pagehead').hasAttribute('data-window-drag'), 'the head is the desktop window drag area')
     // The pair's halves: the KPI band's six cells.
@@ -753,19 +755,27 @@ describe('OverviewPanel', () => {
       }),
     })
     await flush() // the price book lands
-    const detail = query(m.container, '.lc-ov-cost-detail')
-    assert.ok(detail !== null, 'the disclosure exists once usage merges')
-    assert.ok(text(detail).includes('Pricing detail'))
-    const rows = queryAll(detail, '.lc-ov-cost-table tbody tr')
+    const card = query(m.container, '.lc-ov-cost-card')
+    assert.ok(card !== null, 'the disclosure card exists once usage merges')
+    assert.ok(text(card).includes('Pricing detail'))
+    // Every line billed one provider, so the card folds to a single group — closed.
+    const providers = queryAll<HTMLButtonElement>(card, '.lc-ov-cost-prow')
+    assert.equal(providers.length, 1)
+    assert.ok(text(providers[0]).includes('deepseek'))
+    assert.ok(text(providers[0]).includes('3 models'))
+    assert.equal(queryAll(card, '.lc-ov-cost-table').length, 0, 'the group starts collapsed')
+    await click(providers[0])
+    const rows = queryAll(query(card, '.lc-ov-cost-table')!, 'tbody tr')
     assert.equal(rows.length, 3)
     // Descending cost, unpriced last: flash (0.002) edges the exact id (0.00155).
     const cells = (row: HTMLElement): string[] => queryAll(row, 'td').map(el => el.textContent)
-    assert.deepEqual(cells(rows[0]), ['flash deepseek-v4-flash', '2.0k', '$0.0020', 'deepseek · deepseek-v4-flash'])
+    assert.deepEqual(cells(rows[0]).slice(0, 3), ['flash deepseek-v4-flash', '2.0k', '$0.0020'])
     assert.equal(queryAll(rows[0], '.lc-ov-cost-face').length, 1, 'the suffix hit annotates the registry spelling')
-    assert.deepEqual(cells(rows[1]), ['deepseek-v4-flash', '1.8k', '$0.0015', 'deepseek · deepseek-v4-flash'])
+    assert.deepEqual(cells(rows[1]).slice(0, 3), ['deepseek-v4-flash', '1.8k', '$0.0015'])
     assert.equal(queryAll(rows[1], '.lc-ov-cost-face').length, 0, 'an exact hit needs no annotation')
-    assert.deepEqual(cells(rows[2]), ['mystery', '500', '—', 'Model not in the price book'])
-    assert.ok(rows[2].querySelector('td.lc-ov-cost-unpriced') !== null, 'the unpriced line carries its class')
+    assert.deepEqual(cells(rows[2]), ['mystery', '500', '—', '—', 'Model not in the price book'])
+    assert.ok(queryAll(rows[2], 'td')[4].classList.contains('lc-ov-cost-muted'), 'the unpriced line carries its class')
+    assert.equal(queryAll(rows[0], 'td')[4].textContent, 'deepseek · deepseek-v4-flash')
     await m.unmount()
   })
 

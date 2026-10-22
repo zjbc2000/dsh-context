@@ -18,7 +18,7 @@
  */
 
 import { useEffect, useMemo, useState, useSyncExternalStore, type ReactElement } from 'react'
-import { costBreakdownOf, estimateSessionCost, formatCost, type CostCurrency, type CostModelLine, type CostPrefs, type ModelBook } from '../cost'
+import { costBreakdownOf, estimateSessionCost, formatCost, type CostCurrency, type CostPrefs, type ModelBook } from '../cost'
 import { fmt } from '../format'
 import { useModelPrices } from '../modelPrices'
 import {
@@ -43,6 +43,7 @@ import { makeHeatmap, todayKey, type HeatMetric } from './heatmap'
 import { Donut } from './donut'
 import { useHoverTip } from './hoverTip'
 import { makeOverviewTokens } from './overviewTokens'
+import { makeCostCard } from './costCard'
 import { makeOverviewUsage } from './overviewUsage'
 import { makeStatsTiming } from './statsTiming'
 import { makeOverviewCard } from './overviewCard'
@@ -76,6 +77,7 @@ export function makeOverviewPanel(
   const OverviewTokens = makeOverviewTokens(kit, Donut)
   const StatsTiming = makeStatsTiming(kit, Donut)
   const OverviewUsage = makeOverviewUsage(kit)
+  const CostCard = makeCostCard(kit)
   const OverviewSkills = makeOverviewSkills(kit)
   const UpdatePill = makeUpdatePill(kit)
   const ErrorBoundary = makeErrorBoundary(t)
@@ -89,46 +91,6 @@ export function makeOverviewPanel(
   /** The display currency follows the active locale. */
   function activeCurrency(): CostCurrency {
     return activeLocale() === 'zh' ? 'cny' : 'usd'
-  }
-
-  /** The cost KPI's disclosure: one line per billed model — the tokens, the priced
-   * cost, and the book face the price came from, or the reason nothing priced.
-   * Renders nothing while no usage merged (no expander for an empty band). */
-  function CostBreakdown(props: { lines: CostModelLine[]; currency: CostCurrency }): ReactElement | null {
-    if (props.lines.length === 0) return null
-    return (
-      <details className="lc-ov-cost-detail">
-        <summary>{t('ov.kpi.breakdown')}</summary>
-        <table className="lc-ov-cost-table">
-          <thead>
-            <tr>
-              <th scope="col">{t('ov.cost.model')}</th>
-              <th scope="col">{t('ov.usage.tokens')}</th>
-              <th scope="col">{t('stats.cost')}</th>
-              <th scope="col">{t('ov.cost.source')}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {props.lines.map(line => (
-              <tr key={line.provider + '/' + line.model}>
-                <td>
-                  {line.model}
-                  {/* The registry's spelling, when the billed id differs from the face the price read off. */}
-                  {line.rate !== null && line.mid !== line.model && <span className="lc-ov-cost-face"> {line.mid}</span>}
-                </td>
-                <td>{fmt(line.tokens)}</td>
-                <td>{line.cost === null ? '—' : formatCost(line.cost, props.currency)}</td>
-                <td className={line.cost === null ? 'lc-ov-cost-unpriced' : undefined}>
-                  {line.cost === null
-                    ? t('ov.cost.reason.' + line.reason)
-                    : `${line.pid} · ${line.mid}`}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </details>
-    )
   }
 
   function OverviewBody(props: OverviewPanelProps): ReactElement | null {    const { book } = useModelPrices()
@@ -309,7 +271,6 @@ export function makeOverviewPanel(
                         )}
                       </span>
                       <span className="lc-stat-sub">{t('ov.kpi.pricedSub', { n: kpi.costSessions, total: kpi.sessions })}</span>
-                      <CostBreakdown lines={breakdown} currency={currency} />
                     </div>
                     <div className="lc-stat lc-ov-kpi">
                       <span className="lc-stat-label">{t('stats.cacheHit')}</span>
@@ -333,6 +294,8 @@ export function makeOverviewPanel(
                   <OverviewTokens tokens={kpi.tokenParts} />
                   <StatsTiming timing={kpi.timing} />
                 </div>
+                {/* The pricing disclosure owns a full-width band: grouped by vendor, folded by model. */}
+                <CostCard lines={breakdown} currency={currency} prefs={costPrefs} />
                 <div className="lc-ov-body">
                   <div className="lc-ov-left">
                     <div className="lc-card lc-ov-heat-card">
