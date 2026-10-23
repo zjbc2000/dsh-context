@@ -24,21 +24,31 @@ to install it.
 
 ## Install
 
-The fork is not published to npm (`dsh-context` is upstream's package name). Install it from this repository:
+The fork is not published to npm (`dsh-context` is upstream's package name). Install it from this repository into the
+web profile; `dsh plugin` forwards its arguments to pnpm inside `~/.dsh/profiles/web`, and appends the installed bundle
+to `dsh.profile.bundles` automatically.
 
 ```bash
-# branch install; pnpm builds it on the fly through the package's prepare script
 dsh plugin --profile web add github:zjbc2000/dsh-context#local
 ```
 
+A git-hosted install builds through the package's `prepare` script, which pnpm blocks by default. If the first run
+fails on a blocked build, allow it in `~/.dsh/profiles/web/pnpm-workspace.yaml` and re-run:
+
+```yaml
+allowBuilds:
+  dsh-context: true
+```
+
+To skip the build gate entirely, pack a tarball (`pnpm pack` in a clone of this branch, which runs `prepare` up front
+and ships the built `lib/`) and install that:
+
 ```bash
-# or from a packed tarball
-pnpm pack                       # in a clone of this branch → dsh-context-0.74.1.tgz
 dsh plugin --profile web add /path/to/dsh-context-0.74.1.tgz
 ```
 
-Then make sure `dsh-context` is listed in `dsh.profile.bundles` of `~/.dsh/profiles/web/package.json`, and restart
-`dsh web` — plugin bundles are read at boot, so a running server keeps the old build.
+Either way, restart `dsh web` afterwards — plugin bundles are read at boot, so a running server keeps the old build
+(the browser refresh alone is enough only for client-only rebuilds of an already-loaded plugin).
 
 ## Notes
 
