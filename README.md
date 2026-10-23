@@ -10,6 +10,10 @@
 
 **The best [DeepSeek Harness plugin](https://www.deepseek.com/harness/) for Agent's context insights and management.**
 
+> **Fork notice** — this repository is [a fork](FORK.md) of `bowenliang123/dsh-context` that adds cost-breakdown,
+> a 7/30-day usage window, pricing preferences and official-listing aliases. Install instructions for the fork are in
+> [FORK.md](FORK.md).
+
 > Recommended and starred by DeepSeek Harness staff [@tianyicui](https://github.com/tianyicui) and [@turtle1999](https://github.com/turtle1999) — see [this post on X](https://x.com/tianyi/status/2105256532657267119).
 
 [`dsh-context`](https://www.npmjs.com/package/dsh-context) provides full context lifecycle management features.
