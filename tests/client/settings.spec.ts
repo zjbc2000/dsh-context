@@ -61,6 +61,7 @@ describe('createContextSettings defaults', () => {
       costPeakFactor: '2',
       costMultiplier: '1',
       costActualPrice: 'hide',
+      costPriceBasis: 'book',
       promptPrefix: '',
       promptSuffix: '',
       writable: false,
@@ -274,6 +275,7 @@ describe('attach', () => {
         costPeakFactor: '1.5',
         costMultiplier: '0.8',
         costActualPrice: 'show',
+        costPriceBasis: 'official',
         promptPrefix: 'Be terse.',
         promptSuffix: 'Sign as Atlas.',
       },
@@ -298,6 +300,7 @@ describe('attach', () => {
       costPeakFactor: '1.5',
       costMultiplier: '0.8',
       costActualPrice: 'show',
+      costPriceBasis: 'official',
       promptPrefix: 'Be terse.',
       promptSuffix: 'Sign as Atlas.',
       writable: true,
@@ -345,6 +348,7 @@ describe('attach', () => {
         costPeakFactor: '2',
         costMultiplier: '1',
         costActualPrice: 'hide',
+      costPriceBasis: 'book',
         promptPrefix: '',
         promptSuffix: '',
         writable: false,
@@ -562,6 +566,7 @@ describe('attach', () => {
       costPeakFactor: '2',
       costMultiplier: '1',
       costActualPrice: 'hide',
+      costPriceBasis: 'book',
       promptPrefix: '',
       promptSuffix: '',
       writable: true,
@@ -597,19 +602,19 @@ describe('cost preferences', () => {
 
   test('costPrefsOf converts the enum presets into numeric factors', () => {
     assert.deepEqual(
-      costPrefsOf({ costFxRate: 'official', costPeakFactor: '2', costMultiplier: '1', costActualPrice: 'hide' }),
-      { usdPerCny: OFFICIAL_PREFS.usdPerCny, peakFactor: 2, multiplier: 1 },
+      costPrefsOf({ costFxRate: 'official', costPeakFactor: '2', costMultiplier: '1', costActualPrice: 'hide', costPriceBasis: 'book' }),
+      { usdPerCny: OFFICIAL_PREFS.usdPerCny, peakFactor: 2, multiplier: 1, priceBasis: 'book' },
     )
     assert.deepEqual(
-      costPrefsOf({ costFxRate: '7.2', costPeakFactor: '1.5', costMultiplier: '0.8', costActualPrice: 'show' }),
-      { usdPerCny: 1 / 7.2, peakFactor: 1.5, multiplier: 0.8 },
+      costPrefsOf({ costFxRate: '7.2', costPeakFactor: '1.5', costMultiplier: '0.8', costActualPrice: 'show', costPriceBasis: 'official' }),
+      { usdPerCny: 1 / 7.2, peakFactor: 1.5, multiplier: 0.8, priceBasis: 'official' },
     )
   })
 
   test('the multiplier prices in only when the actual-price switch is on', () => {
     assert.deepEqual(
-      costPrefsOf({ costFxRate: '7.0', costPeakFactor: '1', costMultiplier: '0.5', costActualPrice: 'hide' }),
-      { usdPerCny: 1 / 7, peakFactor: 1, multiplier: 1 },
+      costPrefsOf({ costFxRate: '7.0', costPeakFactor: '1', costMultiplier: '0.5', costActualPrice: 'hide', costPriceBasis: 'book' }),
+      { usdPerCny: 1 / 7, peakFactor: 1, multiplier: 1, priceBasis: 'book' },
     )
   })
 

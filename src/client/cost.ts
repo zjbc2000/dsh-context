@@ -10,6 +10,7 @@
 
 import type { SessionCostUsage } from '../shared/types'
 import { isDeepSeekProvider, modelsDevProviderOf } from '../shared/providers'
+import { officialFaceOf } from './officialPrices'
 import { asRecord, numOf, type LocaleService } from './services'
 
 export type CostCurrency = 'usd' | 'cny'
@@ -17,6 +18,9 @@ export type CostCurrency = 'usd' | 'cny'
 const USD_PER_CNY = 0.15
 
 const PEAK_FACTOR = 2
+
+/** Which listing prices a call the billed provider renamed: its own branch, or the vendor's. */
+export type PriceBasis = 'book' | 'official'
 
 /** Display-preference pricing inputs (the volatile cost settings); {@link OFFICIAL_PREFS} prices the book as published. */
 export interface CostPrefs {
@@ -26,9 +30,11 @@ export interface CostPrefs {
   peakFactor: number
   /** Global display multiplier for actual-paid estimates; 1 prices officially. */
   multiplier: number
+  /** `official` prices a renamed model from its vendor's listing, not the reseller's. */
+  priceBasis: PriceBasis
 }
 
-export const OFFICIAL_PREFS: CostPrefs = { usdPerCny: USD_PER_CNY, peakFactor: PEAK_FACTOR, multiplier: 1 }
+export const OFFICIAL_PREFS: CostPrefs = { usdPerCny: USD_PER_CNY, peakFactor: PEAK_FACTOR, multiplier: 1, priceBasis: 'book' }
 
 /** Per-1M-token rates (USD); an absent registry cache field falls back to the input rate. */
 export interface PriceTriple { hit: number; miss: number; write: number; out: number }
@@ -185,8 +191,21 @@ export type PriceResolution = { face: PriceFace } | { face: null; reason: Unpric
  * while the model-side tiers can hand the same id to a self-named host that
  * bills cache hits as plain input (azure's `deepseek-v4-pro`, issue #93).
  */
-export function priceFaceDetailedOf(book: ModelBook | null | undefined, provider: string, model: string): PriceResolution {
+export function priceFaceDetailedOf(
+  book: ModelBook | null | undefined,
+  provider: string,
+  model: string,
+  prefs: CostPrefs = OFFICIAL_PREFS,
+): PriceResolution {
   if (book === null || book === undefined) return { face: null, reason: 'no-book' }
+  if (prefs.priceBasis === 'official') {
+    const official = officialFaceOf(model)
+    if (official !== null) {
+      const branch = branchOf(book.prices, official.pid)
+      const found = branch === null ? null : lookupFaceOf(branch, official.mid)
+      if (found !== null && !('reason' in found)) return { face: { pid: official.pid, mid: found.mid, rate: found.rate } }
+    }
+  }
   const registryPid = modelsDevProviderOf(provider)
   const direct = branchOf(book.prices, registryPid)
   // A carried provider's own branch is final: an unknown model there prices null.
@@ -211,12 +230,22 @@ export function priceFaceDetailedOf(book: ModelBook | null | undefined, provider
   return { face: null, reason: keys.some(key => book.index.byModel.has(key)) ? 'ambiguous' : 'unknown-model' }
 }
 
-export function priceFaceOf(book: ModelBook | null | undefined, provider: string, model: string): PriceFace | null {
-  return priceFaceDetailedOf(book, provider, model).face
+export function priceFaceOf(
+  book: ModelBook | null | undefined,
+  provider: string,
+  model: string,
+  prefs: CostPrefs = OFFICIAL_PREFS,
+): PriceFace | null {
+  return priceFaceDetailedOf(book, provider, model, prefs).face
 }
 
-export function priceOf(book: ModelBook | null | undefined, provider: string, model: string): PriceTriple | null {
-  return priceFaceOf(book, provider, model)?.rate ?? null
+export function priceOf(
+  book: ModelBook | null | undefined,
+  provider: string,
+  model: string,
+  prefs: CostPrefs = OFFICIAL_PREFS,
+): PriceTriple | null {
+  return priceFaceOf(book, provider, model, prefs)?.rate ?? null
 }
 
 /** One model's period buckets priced at `rate` (USD, unconverted). The doubled
@@ -250,7 +279,7 @@ export function estimateSessionCost(
     // The doubled peak period is DeepSeek's alone.
     const deepseek = isDeepSeekProvider(provider)
     for (const model of Object.keys(models)) {
-      const rate = priceOf(book, provider, model)
+      const rate = priceOf(book, provider, model, prefs)
       const periods = asRecord(models[model])
       if (rate === null || periods === null) continue
       total += priceBuckets(periods, rate, deepseek, prefs)
@@ -390,7 +419,7 @@ export function costBreakdownOf(
         if (bucket === null) continue
         tokens += numOf(bucket.uncached) + numOf(bucket.cacheRead) + numOf(bucket.cacheWrite) + numOf(bucket.output)
       }
-      const found = priceFaceDetailedOf(book, provider, model)
+      const found = priceFaceDetailedOf(book, provider, model, prefs)
       if (found.face === null) {
         lines.push({ provider, model, tokens, cost: null, pid: null, mid: null, rate: null, reason: found.reason })
         continue

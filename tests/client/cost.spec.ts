@@ -512,7 +512,7 @@ describe('costBreakdownOf (the breakdown lines)', () => {
   })
 
   test('the display currency and the actual-price prefs ride the line costs, and the peak factor stands in for DeepSeek', () => {
-    const prefs: CostPrefs = { usdPerCny: 1 / 7.2, peakFactor: 1.5, multiplier: 0.8 }
+    const prefs: CostPrefs = { usdPerCny: 1 / 7.2, peakFactor: 1.5, multiplier: 0.8, priceBasis: 'book' }
     const lines = costBreakdownOf(usage, BOOK_B, 'cny', prefs)
     close(lines[0].cost, (1_000_000 * K3.hit / 1e6 + 2_000_000 * K3.out / 1e6) * 0.8 * 7.2)
     // The deepseek line bills off-peak: no peak stand-in applies; the multiplier still does.
@@ -561,5 +561,43 @@ describe('costBreakdownOf (the breakdown lines)', () => {
       deepseek: { 'deepseek-v4-flash': { off: { uncached: 1_000_000, cacheRead: 0, cacheWrite: 0, output: 0 } } },
     }, BOOK_B, 'usd')
     assert.deepEqual(lines.map(l => l.model), ['deepseek-v4-flash', 'mystery'])
+  })
+})
+
+describe('priceBasis: official', () => {
+  const ZAI = { hit: 0.03, miss: 0.15, write: 0, out: 0.5 }
+  const VOLC = { hit: 0.03414, miss: 0.11875, write: 0.03414, out: 0.41563 }
+  const MIRROR: ModelPrices = {
+    volcengine: { 'glm-5-3-flash-260828': VOLC },
+    zai: { 'glm-5.3-flash': ZAI },
+  }
+  const OFFICIAL: CostPrefs = { ...OFFICIAL_PREFS, priceBasis: 'official' }
+  const usage: SessionCostUsage = { volcengine: { 'glm-5-3-flash-260828': { off: bucket(0, M, 0, 0) } } }
+
+  test('prices a renamed model from the vendor branch, not the reseller that billed it', () => {
+    const book = bookOf(MIRROR)
+    assert.deepEqual(priceFaceOf(book, 'volcengine', 'glm-5-3-flash-260828'), { pid: 'volcengine', mid: 'glm-5-3-flash-260828', rate: VOLC })
+    assert.deepEqual(priceFaceOf(book, 'volcengine', 'glm-5-3-flash-260828', OFFICIAL), { pid: 'zai', mid: 'glm-5.3-flash', rate: ZAI })
+    close(estimateSessionCost(usage, book, 'usd'), 0.11875)
+    close(estimateSessionCost(usage, book, 'usd', OFFICIAL), 0.15)
+    assert.equal(costBreakdownOf(usage, book, 'usd', OFFICIAL)[0].mid, 'glm-5.3-flash')
+  })
+
+  test('a book without the vendor branch falls back to the billed provider listing', () => {
+    const book = bookOf({ volcengine: MIRROR.volcengine })
+    close(estimateSessionCost(usage, book, 'usd', OFFICIAL), 0.11875)
+  })
+
+  test('a vendor branch missing the model falls back too, not to a dash', () => {
+    const book = bookOf({ ...MIRROR, zai: { 'glm-5.3': ZAI } })
+    close(estimateSessionCost(usage, book, 'usd', OFFICIAL), 0.11875)
+  })
+
+  test('an id no alias claims is untouched by the basis', () => {
+    const book = bookOf({ ...MIRROR, opencode: { 'gpt-6.1-sol': ZAI } })
+    assert.deepEqual(priceFaceOf(book, 'opencode', 'gpt-6.1-sol', OFFICIAL), { pid: 'opencode', mid: 'gpt-6.1-sol', rate: ZAI })
+    assert.deepEqual(priceOf(book, 'volcengine', 'glm-5-3-flash-260828', OFFICIAL), ZAI)
+    assert.deepEqual(priceOf(book, 'zai', 'glm-5.3-flash', OFFICIAL), ZAI, 'the vendor listing prices itself')
+    assert.equal(priceOf(null, 'volcengine', 'glm-5-3-flash-260828', OFFICIAL), null, 'still no book, no price')
   })
 })

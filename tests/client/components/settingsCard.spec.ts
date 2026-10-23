@@ -14,7 +14,7 @@ function hookFor(state: SettingsState) {
 }
 
 function stateOf(partial: Partial<SettingsState> = {}): SettingsState {
-  return { status: 'ready', placement: 'all', granularity: 'step', mode: 'total', deltaBase: 'step', toolSort: 'count', fileSort: 'count', insightsEntry: 'show', durationCurve: 'show', overviewAutoSteps: '200', overviewRange: '30d', fleetTab: 'show', usageWindow: '7d', costFxRate: 'official', costPeakFactor: '2', costMultiplier: '1', costActualPrice: 'hide', promptPrefix: '', promptSuffix: '', writable: true, ...partial }
+  return { status: 'ready', placement: 'all', granularity: 'step', mode: 'total', deltaBase: 'step', toolSort: 'count', fileSort: 'count', insightsEntry: 'show', durationCurve: 'show', overviewAutoSteps: '200', overviewRange: '30d', fleetTab: 'show', usageWindow: '7d', costFxRate: 'official', costPeakFactor: '2', costMultiplier: '1', costActualPrice: 'hide', costPriceBasis: 'book', promptPrefix: '', promptSuffix: '', writable: true, ...partial }
 }
 
 /** Menu items portaled into document.body while a select is open. */
@@ -36,7 +36,7 @@ describe('PluginConfigCard (the Plugins-page seat)', () => {
     await m2.unmount()
   })
 
-  test('renders the sixteen selects and the two prompt text rows across four titled groups — no card chrome', async () => {
+  test('renders the seventeen selects and the two prompt text rows across four titled groups — no card chrome', async () => {
     const m = await mount(h(PluginConfigCard, { useContextSettings: hookFor(stateOf({ status: 'loading', writable: false })) }))
     assert.equal(m.container.querySelector('.lc-settings-card'), null, 'no settings-section chrome')
     assert.ok(query(m.container, '.lc-settings-prefs'))
@@ -49,7 +49,7 @@ describe('PluginConfigCard (the Plugins-page seat)', () => {
       DICT_EN['settings.group.prompt'],
     ])
     const selects = queryAll<HTMLButtonElement>(m.container, '.lc-settings-select')
-    assert.equal(selects.length, 16)
+    assert.equal(selects.length, 17)
     assert.ok(selects.every(s => s.disabled), 'loading is not ready: the rows are disabled')
     const textareas = queryAll<HTMLTextAreaElement>(m.container, '.lc-settings-textarea')
     assert.equal(textareas.length, 2)
@@ -250,9 +250,15 @@ describe('PluginConfigCard (the Plugins-page seat)', () => {
       ['usageWindow', '30d'],
     ])
 
-    assert.ok(text(m.container).includes(DICT_EN['settings.costFxRate']))
-    assert.ok(text(selects[12]).includes(DICT_EN['settings.costFxOfficial']))
+    assert.ok(text(m.container).includes(DICT_EN['settings.costPriceBasis']))
     await click(selects[12])
+    const basisItems = menuItems()
+    assert.deepEqual(basisItems.map(i => text(i)), [DICT_EN['settings.costBasisBook'], DICT_EN['settings.costBasisOfficial']])
+    await click(basisItems[1]) // the vendor's own list price
+
+    assert.ok(text(m.container).includes(DICT_EN['settings.costFxRate']))
+    assert.ok(text(selects[13]).includes(DICT_EN['settings.costFxOfficial']))
+    await click(selects[13])
     const fxItems = menuItems()
     assert.deepEqual(fxItems.map(i => text(i)), [
       DICT_EN['settings.costFxOfficial'],
@@ -273,11 +279,12 @@ describe('PluginConfigCard (the Plugins-page seat)', () => {
       ['defaultToolSort', 'name'],
       ['defaultFileSort', 'name'],
       ['usageWindow', '30d'],
+      ['costPriceBasis', 'official'],
       ['costFxRate', '7.2'],
     ])
 
     assert.ok(text(m.container).includes(DICT_EN['settings.costPeak']))
-    await click(selects[13])
+    await click(selects[14])
     const peakItems = menuItems()
     assert.deepEqual(peakItems.map(i => text(i)), [
       DICT_EN['settings.costTimes'].replace('{n}', '1'),
@@ -286,12 +293,12 @@ describe('PluginConfigCard (the Plugins-page seat)', () => {
     ])
     await click(peakItems[0]) // 1×
     assert.ok(text(m.container).includes(DICT_EN['settings.costMultiplier']))
-    await click(selects[14])
+    await click(selects[15])
     const multItems = menuItems()
     assert.deepEqual(multItems.map(i => text(i)), ['1', '0.95', '0.9', '0.8', '0.7', '0.5'].map(n => DICT_EN['settings.costTimes'].replace('{n}', n)))
     await click(multItems[3]) // 0.8×
     assert.ok(text(m.container).includes(DICT_EN['settings.costActualPrice']))
-    await click(selects[15])
+    await click(selects[16])
     const actualItems = menuItems()
     assert.deepEqual(actualItems.map(i => text(i)), [DICT_EN['showHide.show'], DICT_EN['showHide.hide']])
     await click(actualItems[0]) // 'Show'
@@ -307,6 +314,7 @@ describe('PluginConfigCard (the Plugins-page seat)', () => {
       ['defaultToolSort', 'name'],
       ['defaultFileSort', 'name'],
       ['usageWindow', '30d'],
+      ['costPriceBasis', 'official'],
       ['costFxRate', '7.2'],
       ['costPeakFactor', '1'],
       ['costMultiplier', '0.8'],
@@ -334,6 +342,7 @@ describe('PluginConfigCard (the Plugins-page seat)', () => {
       ['defaultToolSort', 'name'],
       ['defaultFileSort', 'name'],
       ['usageWindow', '30d'],
+      ['costPriceBasis', 'official'],
       ['costFxRate', '7.2'],
       ['costPeakFactor', '1'],
       ['costMultiplier', '0.8'],

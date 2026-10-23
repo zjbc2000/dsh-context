@@ -240,6 +240,16 @@ function PreferenceRows(props: { t: Translate; state: SettingsState; set?: Setti
           onPick={(id) => { set?.('usageWindow', id) }}
         />
         <PrefRow
+          label={t('settings.costPriceBasis')}
+          value={state.costPriceBasis}
+          disabled={disabled}
+          options={[
+            { id: 'book', label: t('settings.costBasisBook') },
+            { id: 'official', label: t('settings.costBasisOfficial') },
+          ]}
+          onPick={(id) => { set?.('costPriceBasis', id) }}
+        />
+        <PrefRow
           label={t('settings.costFxRate')}
           value={state.costFxRate}
           disabled={disabled}

@@ -106,8 +106,9 @@ export function makeOverviewPanel(
     const peakFactor = useSyncExternalStore(subscribeSettings, () => settings.costPeakFactor())
     const multiplier = useSyncExternalStore(subscribeSettings, () => settings.costMultiplier())
     const actualPrice = useSyncExternalStore(subscribeSettings, () => settings.costActualPrice())
+    const priceBasis = useSyncExternalStore(subscribeSettings, () => settings.costPriceBasis())
     const costPrefs = costPrefsOf({
-      costFxRate: fxRate, costPeakFactor: peakFactor, costMultiplier: multiplier, costActualPrice: actualPrice,
+      costFxRate: fxRate, costPeakFactor: peakFactor, costMultiplier: multiplier, costActualPrice: actualPrice, costPriceBasis: priceBasis,
     })
     const [picked, setPicked] = useState<OverviewRange | null>(null)
     const preset = picked ?? configuredRange

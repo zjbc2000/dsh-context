@@ -1,7 +1,7 @@
 /** The plugin's user-settings binding (browser half): the Host-served `dsh-context` namespace carries per-user
  * display preferences, degrading to the schema defaults wherever that surface is absent or read-only. */
 
-import type { CostActualPrice, CostFxRate, CostMultiplier, CostPeakFactor, DefaultDeltaBase, DefaultFileSort, DefaultGranularity, DefaultDurationCurve, DefaultOverviewRange, DefaultPlacement, DefaultToolSort, DefaultTrendMode, FleetTab, InsightsEntry, OverviewAutoSteps, SettingsField, UsageWindow } from '../shared/types'
+import type { CostActualPrice, CostFxRate, CostPriceBasis, CostMultiplier, CostPeakFactor, DefaultDeltaBase, DefaultFileSort, DefaultGranularity, DefaultDurationCurve, DefaultOverviewRange, DefaultPlacement, DefaultToolSort, DefaultTrendMode, FleetTab, InsightsEntry, OverviewAutoSteps, SettingsField, UsageWindow } from '../shared/types'
 import { OFFICIAL_PREFS, type CostPrefs } from './cost'
 
 export type { DefaultDeltaBase, DefaultFileSort, DefaultToolSort, SettingsField } from '../shared/types'
@@ -44,6 +44,7 @@ export interface SettingsState {
   costPeakFactor: CostPeakFactor
   costMultiplier: CostMultiplier
   costActualPrice: CostActualPrice
+  costPriceBasis: CostPriceBasis
   promptPrefix: string
   promptSuffix: string
   writable: boolean
@@ -68,6 +69,7 @@ export interface ContextSettings {
   costPeakFactor(): CostPeakFactor
   costMultiplier(): CostMultiplier
   costActualPrice(): CostActualPrice
+  costPriceBasis(): CostPriceBasis
   attach(scope: SettingsScopeLike): () => void
   /** Persist one preference choice (local echo, then the fenced scope write). */
   set(field: SettingsField, value: string): void
@@ -90,6 +92,7 @@ type Prefs = {
   costPeakFactor?: CostPeakFactor
   costMultiplier?: CostMultiplier
   costActualPrice?: CostActualPrice
+  costPriceBasis?: CostPriceBasis
   promptPrefix?: string
   promptSuffix?: string
 }
@@ -114,13 +117,14 @@ function prefsOf(value: unknown): Prefs {
     ...(v.costPeakFactor === '1' || v.costPeakFactor === '1.5' || v.costPeakFactor === '2' ? { costPeakFactor: v.costPeakFactor } : {}),
     ...(v.costMultiplier === '1' || v.costMultiplier === '0.95' || v.costMultiplier === '0.9' || v.costMultiplier === '0.8' || v.costMultiplier === '0.7' || v.costMultiplier === '0.5' ? { costMultiplier: v.costMultiplier } : {}),
     ...(v.costActualPrice === 'show' || v.costActualPrice === 'hide' ? { costActualPrice: v.costActualPrice } : {}),
+    ...(v.costPriceBasis === 'book' || v.costPriceBasis === 'official' ? { costPriceBasis: v.costPriceBasis } : {}),
     ...(typeof v.promptPrefix === 'string' ? { promptPrefix: v.promptPrefix } : {}),
     ...(typeof v.promptSuffix === 'string' ? { promptSuffix: v.promptSuffix } : {}),
   }
 }
 
 export function createContextSettings(): ContextSettings {
-  let state: SettingsState = { status: 'loading', placement: 'all', granularity: 'step', mode: 'total', deltaBase: 'step', toolSort: 'count', fileSort: 'count', insightsEntry: 'show', durationCurve: 'show', overviewAutoSteps: '200', overviewRange: '30d', fleetTab: 'show', usageWindow: '7d', costFxRate: 'official', costPeakFactor: '2', costMultiplier: '1', costActualPrice: 'hide', promptPrefix: '', promptSuffix: '', writable: false }
+  let state: SettingsState = { status: 'loading', placement: 'all', granularity: 'step', mode: 'total', deltaBase: 'step', toolSort: 'count', fileSort: 'count', insightsEntry: 'show', durationCurve: 'show', overviewAutoSteps: '200', overviewRange: '30d', fleetTab: 'show', usageWindow: '7d', costFxRate: 'official', costPeakFactor: '2', costMultiplier: '1', costActualPrice: 'hide', costPriceBasis: 'book', promptPrefix: '', promptSuffix: '', writable: false }
   let scope: SettingsScopeLike | undefined
   const listeners = new Set<() => void>()
   /** Every field is a scalar, so a shallow compare is the store's identity check — and a new preference
@@ -162,6 +166,7 @@ export function createContextSettings(): ContextSettings {
       costPeakFactor: prefs.costPeakFactor ?? state.costPeakFactor,
       costMultiplier: prefs.costMultiplier ?? state.costMultiplier,
       costActualPrice: prefs.costActualPrice ?? state.costActualPrice,
+      costPriceBasis: prefs.costPriceBasis ?? state.costPriceBasis,
       promptPrefix: prefs.promptPrefix ?? (raw?.promptPrefix === undefined ? state.promptPrefix : ''),
       promptSuffix: prefs.promptSuffix ?? (raw?.promptSuffix === undefined ? state.promptSuffix : ''),
       writable: snap.writable,
@@ -192,6 +197,7 @@ export function createContextSettings(): ContextSettings {
     costPeakFactor: () => state.costPeakFactor,
     costMultiplier: () => state.costMultiplier,
     costActualPrice: () => state.costActualPrice,
+    costPriceBasis: () => state.costPriceBasis,
     attach(bound) {
       scope = bound
       sync(bound)
@@ -225,11 +231,12 @@ export function createContextSettings(): ContextSettings {
 /** The pricing inputs the cost preferences resolve to. The multiplier prices into the
  * estimates only in actual-price mode, so official figures never move behind the user's back. */
 export function costPrefsOf(
-  state: Pick<SettingsState, 'costFxRate' | 'costPeakFactor' | 'costMultiplier' | 'costActualPrice'>,
+  state: Pick<SettingsState, 'costFxRate' | 'costPeakFactor' | 'costMultiplier' | 'costActualPrice' | 'costPriceBasis'>,
 ): CostPrefs {
   return {
     usdPerCny: state.costFxRate === 'official' ? OFFICIAL_PREFS.usdPerCny : 1 / Number(state.costFxRate),
     peakFactor: Number(state.costPeakFactor),
     multiplier: state.costActualPrice === 'show' ? Number(state.costMultiplier) : 1,
+    priceBasis: state.costPriceBasis,
   }
 }

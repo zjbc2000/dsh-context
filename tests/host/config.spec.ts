@@ -41,6 +41,7 @@ describe('Config validator (cordis Standard Schema face)', () => {
       costPeakFactor: '2',
       costMultiplier: '1',
       costActualPrice: 'hide',
+      costPriceBasis: 'book',
       promptPrefix: '',
       promptSuffix: '',
     })

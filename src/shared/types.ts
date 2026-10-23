@@ -194,6 +194,9 @@ export type CostMultiplier = '1' | '0.95' | '0.9' | '0.8' | '0.7' | '0.5'
 /** Whether cost figures show the multiplier-adjusted (actual-paid) estimate. */
 export type CostActualPrice = 'show' | 'hide'
 
+/** Which listing prices a model a mirror renamed: the billed provider's, or the vendor's own. */
+export type CostPriceBasis = 'book' | 'official'
+
 export interface PluginSettings {
   defaultPlacement: DefaultPlacement
   defaultGranularity: DefaultGranularity
@@ -211,6 +214,7 @@ export interface PluginSettings {
   costPeakFactor: CostPeakFactor
   costMultiplier: CostMultiplier
   costActualPrice: CostActualPrice
+  costPriceBasis: CostPriceBasis
   /** Free text joined ahead of the harness's assembled system prompt; empty disables. */
   promptPrefix: string
   /** Free text joined behind the harness's assembled system prompt; empty disables. */
