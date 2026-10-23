@@ -1,4 +1,5 @@
 import type { CostActualPrice, CostFxRate, CostPriceBasis, CostMultiplier, CostPeakFactor, DefaultDeltaBase, DefaultFileSort, DefaultGranularity, DefaultDurationCurve, DefaultOverviewRange, DefaultPlacement, DefaultToolSort, DefaultTrendMode, FleetTab, InsightsEntry, OverviewAutoSteps, SettingsField, UsageWindow } from '../shared/types'
+import { useMemo, useSyncExternalStore } from 'react'
 import { BOOK_PREFS, type CostPrefs } from './cost'
 
 export type { DefaultDeltaBase, DefaultFileSort, DefaultToolSort, SettingsField } from '../shared/types'
@@ -222,12 +223,25 @@ export function createContextSettings(): ContextSettings {
 /** The pricing inputs the cost preferences resolve to. The multiplier prices into the
  * estimates only in actual-price mode, so official figures never move behind the user's back. */
 export function costPrefsOf(
-  state: Pick<SettingsState, 'costFxRate' | 'costPeakFactor' | 'costMultiplier' | 'costActualPrice' | 'costPriceBasis'>,
+  state: Pick<SettingsState, 'costFxRate' | 'costPeakFactor' | 'costMultiplier' | 'costActualPrice' | 'costPriceBasis'> | null,
 ): CostPrefs {
+  if (state === null) return BOOK_PREFS
   return {
     usdPerCny: state.costFxRate === 'official' ? BOOK_PREFS.usdPerCny : 1 / Number(state.costFxRate),
     peakFactor: Number(state.costPeakFactor),
     multiplier: state.costActualPrice === 'show' ? Number(state.costMultiplier) : 1,
     priceBasis: state.costPriceBasis,
   }
+}
+
+const NO_SUBSCRIBE = (): (() => void) => () => {}
+
+/** The live pricing inputs, so one preference re-prices every surface that shows a cost. */
+export function useCostPrefs(settings: ContextSettings | null): CostPrefs {
+  const subscribe = useMemo(
+    () => (settings === null ? NO_SUBSCRIBE : (listener: () => void): (() => void) => settings.store.subscribe(listener)),
+    [settings],
+  )
+  const stored = useSyncExternalStore(subscribe, () => (settings === null ? null : settings.store.getSnapshot()))
+  return useMemo(() => costPrefsOf(stored), [stored])
 }

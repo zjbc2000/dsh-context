@@ -23,12 +23,11 @@ to install it.
    regardless of which provider id the traffic actually went through. Undeclared aliases (a genuinely different tier
    such as `glm-5.3-flashx` or `deepseek-v4-pro`) keep the provider's own price.
 
-## Known gaps
+## One pricing path
 
-- The `Cost estimation` preferences (basis, exchange rate, peak factor, multiplier) re-price the Overview only. The
-  Context stats board, the agent graph and the Fleet strip still price each session from the billed provider's own
-  book rate, so with the `official` basis on, an aliased model (GLM, DeepSeek Flash, Sonnet 5.5) can show one figure in
-  the Overview and another there.
+- The `Cost estimation` preferences (basis, exchange rate, peak factor, multiplier) price **every** surface: the
+  Overview, the Context stats board, the agent graph and the Fleet strip all read the same settings snapshot, so one
+  session shows one figure wherever it appears.
 
 ## Install
 
