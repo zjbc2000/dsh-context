@@ -6,7 +6,7 @@ The rules dsh-context must hold on every supported `@deepseek-ai/dsh` release, a
 
 **Law.** Record only what no other artifact carries; delete what code, tests, or git history already say. Verify against the dsh sources before acting — source wins over this page. Less is ALWAYS better.
 
-Last verified: **2026-10-23** (dsh-context `0.74.0`, dsh `0.2.0-rc.2` / `0.2.1-rc.2` tag trees).
+Last verified: **2026-10-23** (dsh-context `0.74.1`, dsh `0.2.0-rc.2` / `0.2.1-rc.2` tag trees).
 
 ## 1 · Supported set
 
@@ -63,6 +63,7 @@ Last verified: **2026-10-23** (dsh-context `0.74.0`, dsh `0.2.0-rc.2` / `0.2.1-r
 
 - **Limitation — declared divergence:** the timing card's wait/generation boundary opens at the first OBSERVABLE instant (the first token, or an earlier `block-start` marker the token packing could not stamp), not at the meter's first-token anchor — so marker-tiled decode buckets and the split never double-count one window.
 - **Limitation — daily-ledger attribution:** `contextTimeline.cost` prices at the settlement instant while the daily ledger prices at the step-initiation instant, so a tariff-boundary step can split its peak/off buckets differently between the lifetime total and the KPI band; the ledger also retains 400 days (`MAX_KEPT_DAYS` in `src/host/activity.ts`).
+- **Limitation — declared divergence, official-price basis:** under the `official` basis (`src/client/officialPrices.ts`) an aliased model prices from its vendor's registry listing rather than the listing of the provider that billed it, so a resold id's figure is the vendor's list price, not the reseller's (the disclosure names the face it priced off). The basis is a display preference, not a meter: the harness's own `contextTimeline.cost` keeps the billed provider's rate.
 - **Limitation — statutory holidays:** no holiday calendar is maintained (by decision), so a holiday-weekday request inside the peak windows prices at peak where the platform bills off-peak; the tooltip states the weekday/weekend rule. (`src/host/foldMetering.ts` `isBeijingPeak`)
 
 ## 5 · Client surface

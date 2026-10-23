@@ -51,7 +51,6 @@ export function makeCostCard(kit: ViewKit): (props: {
     currency: CostCurrency
     prefs: CostPrefs
   }): ReactElement | null {
-    // Provider ids of the groups the reader opened; every group starts closed.
     const [open, setOpen] = useState<readonly string[]>([])
     const groups = costGroupsOf(props.lines)
     if (groups.length === 0) return null
@@ -122,7 +121,12 @@ export function makeCostCard(kit: ViewKit): (props: {
                             )}
                           </td>
                           <td className={line.cost === null ? 'lc-ov-cost-muted' : 'lc-ov-cost-src'}>
-                            {line.cost === null ? t('ov.cost.reason.' + line.reason) : `${line.pid} · ${line.mid}`}
+                            {line.cost === null ? (
+                              <span title={line.pid === null ? undefined : t('ov.cost.mapTip')}>
+                                {t('ov.cost.reason.' + line.reason)}
+                                {line.pid === null ? '' : ` · ${line.pid}`}
+                              </span>
+                            ) : `${line.pid} · ${line.mid}`}
                           </td>
                         </tr>
                       ))}

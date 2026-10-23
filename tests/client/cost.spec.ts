@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { describe, test } from 'vitest'
-import { costBreakdownOf, estimateSessionCost, billedTokensOf, formatCost, formatPriceRate, mergeCostUsage, OFFICIAL_PREFS, priceFaceDetailedOf, priceFaceOf, priceIndexOf, priceOf, toCurrency } from '../../src/client/cost'
+import { costBreakdownOf, estimateSessionCost, billedTokensOf, formatCost, formatPriceRate, mergeCostUsage, BOOK_PREFS, priceFaceDetailedOf, priceFaceOf, priceIndexOf, priceOf, toCurrency } from '../../src/client/cost'
 import type { CostPrefs, ModelBook, ModelPrices } from '../../src/client/cost'
 import type { CostBucketTotals, SessionCostUsage } from '../../src/shared/types'
 
@@ -406,10 +406,11 @@ describe('formatCost', () => {
 })
 
 describe('formatPriceRate', () => {
-  test('always renders two decimals in the currency symbol', () => {
+  test('keeps two decimals above a tenth and significant digits below it', () => {
     assert.equal(formatPriceRate(3, 'cny'), '¥3.00')
     assert.equal(formatPriceRate(4.5, 'cny'), '¥4.50')
-    assert.equal(formatPriceRate(0.007, 'usd'), '$0.01')
+    assert.equal(formatPriceRate(0.007, 'usd'), '$0.0070')
+    assert.equal(formatPriceRate(0.003, 'usd'), '$0.0030')
     assert.equal(formatPriceRate(0.1, 'usd'), '$0.10')
   })
 })
@@ -479,7 +480,7 @@ describe('costBreakdownOf (the breakdown lines)', () => {
     // A null bucket contributes no tokens but the model line still reports its verdict.
     assert.deepEqual(
       costBreakdownOf({ p: { m: { peak: null } } } as never, BOOK_B, 'usd'),
-      [{ provider: 'p', model: 'm', tokens: 0, cost: null, pid: null, mid: null, rate: null, reason: 'unknown-model' }],
+      [{ provider: 'p', model: 'm', tokens: 0, cost: null, pid: 'p', mid: null, rate: null, reason: 'unknown-model' }],
     )
   })
 
@@ -491,7 +492,7 @@ describe('costBreakdownOf (the breakdown lines)', () => {
     close(kimi.cost, 1_000_000 * K3.hit / 1e6 + 2_000_000 * K3.out / 1e6, 'kimi prices peak without the deepseek stand-in')
     assert.deepEqual({ ...flash, cost: 0 }, { provider: 'deepseek', model: 'deepseek-v4-flash', tokens: 1_000_000, cost: 0, pid: 'deepseek', mid: 'deepseek-v4-flash', rate: FLASH })
     close(flash.cost, FLASH.miss)
-    assert.deepEqual(mystery, { provider: 'moonshotai', model: 'mystery', tokens: 500_000, cost: null, pid: null, mid: null, rate: null, reason: 'unknown-model' })
+    assert.deepEqual(mystery, { provider: 'moonshotai', model: 'mystery', tokens: 500_000, cost: null, pid: 'moonshotai', mid: null, rate: null, reason: 'unknown-model' })
   })
 
   test('the display currency and the actual-price prefs ride the line costs, and the peak factor stands in for DeepSeek', () => {
@@ -510,7 +511,7 @@ describe('costBreakdownOf (the breakdown lines)', () => {
     const lines = costBreakdownOf({
       deepseek: { 'deepseek-v4-flash': { peak: { uncached: 1_000_000, cacheRead: 0, cacheWrite: 0, output: 0 } } },
     }, BOOK_B, 'usd')
-    close(lines[0].cost, OFFICIAL_PREFS.peakFactor * FLASH.miss)
+    close(lines[0].cost, BOOK_PREFS.peakFactor * FLASH.miss)
   })
 
   test('equal costs break by tokens, then provider, then model', () => {
@@ -554,7 +555,7 @@ describe('priceBasis: official', () => {
     volcengine: { 'glm-5-3-flash-260828': VOLC },
     zai: { 'glm-5.3-flash': ZAI },
   }
-  const OFFICIAL: CostPrefs = { ...OFFICIAL_PREFS, priceBasis: 'official' }
+  const OFFICIAL: CostPrefs = { ...BOOK_PREFS, priceBasis: 'official' }
   const usage: SessionCostUsage = { volcengine: { 'glm-5-3-flash-260828': { off: bucket(0, M, 0, 0) } } }
 
   test('prices a renamed model from the vendor branch, not the reseller that billed it', () => {

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { describe, test } from 'vitest'
-import { OFFICIAL_PREFS } from '../../src/client/cost'
+import { BOOK_PREFS } from '../../src/client/cost'
 import { createContextSettings, costPrefsOf, overviewThresholdOf, type ContextSettings, type SettingsScopeLike } from '../../src/client/settings'
 
 class TestSettingsScope implements SettingsScopeLike {
@@ -50,12 +50,12 @@ describe('createContextSettings defaults', () => {
       overviewAutoSteps: '200',
       overviewRange: '30d',
       fleetTab: 'show',
-      usageWindow: '7d',
+      usageWindow: '30d',
       costFxRate: 'official',
       costPeakFactor: '2',
       costMultiplier: '1',
       costActualPrice: 'hide',
-      costPriceBasis: 'book',
+      costPriceBasis: 'official',
       promptPrefix: '',
       promptSuffix: '',
       writable: false,
@@ -71,11 +71,12 @@ describe('createContextSettings defaults', () => {
     assert.equal(s.overviewAutoSteps(), '200')
     assert.equal(s.defaultOverviewRange(), '30d')
     assert.equal(s.fleetTab(), 'show')
-    assert.equal(s.usageWindow(), '7d')
+    assert.equal(s.usageWindow(), '30d')
     assert.equal(s.costFxRate(), 'official')
     assert.equal(s.costPeakFactor(), '2')
     assert.equal(s.costMultiplier(), '1')
     assert.equal(s.costActualPrice(), 'hide')
+    assert.equal(s.costPriceBasis(), 'official')
   })
 })
 
@@ -299,6 +300,7 @@ describe('attach', () => {
     assert.equal(s.costPeakFactor(), '1.5')
     assert.equal(s.costMultiplier(), '0.8')
     assert.equal(s.costActualPrice(), 'show')
+    assert.equal(s.costPriceBasis(), 'official')
   })
 
   test('an unavailable snapshot keeps parsed preferences', () => {
@@ -332,12 +334,12 @@ describe('attach', () => {
         overviewAutoSteps: '200',
         overviewRange: '30d',
         fleetTab: 'show',
-        usageWindow: '7d',
+        usageWindow: '30d',
         costFxRate: 'official',
         costPeakFactor: '2',
         costMultiplier: '1',
         costActualPrice: 'hide',
-      costPriceBasis: 'book',
+        costPriceBasis: 'official',
         promptPrefix: '',
         promptSuffix: '',
         writable: false,
@@ -551,12 +553,12 @@ describe('attach', () => {
       overviewAutoSteps: '200',
       overviewRange: '30d',
       fleetTab: 'show',
-      usageWindow: '7d',
+      usageWindow: '30d',
       costFxRate: 'official',
       costPeakFactor: '2',
       costMultiplier: '1',
       costActualPrice: 'hide',
-      costPriceBasis: 'book',
+      costPriceBasis: 'official',
       promptPrefix: '',
       promptSuffix: '',
       writable: true,
@@ -593,7 +595,7 @@ describe('cost preferences', () => {
   test('costPrefsOf converts the enum presets into numeric factors', () => {
     assert.deepEqual(
       costPrefsOf({ costFxRate: 'official', costPeakFactor: '2', costMultiplier: '1', costActualPrice: 'hide', costPriceBasis: 'book' }),
-      { usdPerCny: OFFICIAL_PREFS.usdPerCny, peakFactor: 2, multiplier: 1, priceBasis: 'book' },
+      { usdPerCny: BOOK_PREFS.usdPerCny, peakFactor: 2, multiplier: 1, priceBasis: 'book' },
     )
     assert.deepEqual(
       costPrefsOf({ costFxRate: '7.2', costPeakFactor: '1.5', costMultiplier: '0.8', costActualPrice: 'show', costPriceBasis: 'official' }),

@@ -15,7 +15,7 @@ const PEAK_FACTOR = 2
 /** Which listing prices a call the billed provider renamed: its own branch, or the vendor's. */
 export type PriceBasis = 'book' | 'official'
 
-/** Display-preference pricing inputs (the volatile cost settings); {@link OFFICIAL_PREFS} prices the book as published. */
+/** Display-preference pricing inputs (the volatile cost settings); {@link BOOK_PREFS} prices the book as published. */
 export interface CostPrefs {
   /** USD per CNY for the CNY display (the book's official conversion is 0.15). */
   usdPerCny: number
@@ -27,7 +27,7 @@ export interface CostPrefs {
   priceBasis: PriceBasis
 }
 
-export const OFFICIAL_PREFS: CostPrefs = { usdPerCny: USD_PER_CNY, peakFactor: PEAK_FACTOR, multiplier: 1, priceBasis: 'book' }
+export const BOOK_PREFS: CostPrefs = { usdPerCny: USD_PER_CNY, peakFactor: PEAK_FACTOR, multiplier: 1, priceBasis: 'book' }
 
 /** Per-1M-token rates (USD); an absent registry cache field falls back to the input rate. */
 export interface PriceTriple { hit: number; miss: number; write: number; out: number }
@@ -44,7 +44,7 @@ export interface ModelBook { prices: ModelPrices; index: PriceIndex }
 
 export interface PriceFace { pid: string; mid: string; rate: PriceTriple }
 
-export function toCurrency(usd: number, currency: CostCurrency, prefs: CostPrefs = OFFICIAL_PREFS): number {
+export function toCurrency(usd: number, currency: CostCurrency, prefs: CostPrefs = BOOK_PREFS): number {
   return currency === 'cny' ? usd / prefs.usdPerCny : usd
 }
 
@@ -170,7 +170,7 @@ export function priceFaceDetailedOf(
   book: ModelBook | null | undefined,
   provider: string,
   model: string,
-  prefs: CostPrefs = OFFICIAL_PREFS,
+  prefs: CostPrefs = BOOK_PREFS,
 ): PriceResolution {
   if (book === null || book === undefined) return { face: null, reason: 'no-book' }
   if (prefs.priceBasis === 'official') {
@@ -209,7 +209,7 @@ export function priceFaceOf(
   book: ModelBook | null | undefined,
   provider: string,
   model: string,
-  prefs: CostPrefs = OFFICIAL_PREFS,
+  prefs: CostPrefs = BOOK_PREFS,
 ): PriceFace | null {
   return priceFaceDetailedOf(book, provider, model, prefs).face
 }
@@ -218,7 +218,7 @@ export function priceOf(
   book: ModelBook | null | undefined,
   provider: string,
   model: string,
-  prefs: CostPrefs = OFFICIAL_PREFS,
+  prefs: CostPrefs = BOOK_PREFS,
 ): PriceTriple | null {
   return priceFaceOf(book, provider, model, prefs)?.rate ?? null
 }
@@ -242,7 +242,7 @@ export function estimateSessionCost(
   usage: SessionCostUsage | null | undefined,
   book: ModelBook | null | undefined,
   currency: CostCurrency,
-  prefs: CostPrefs = OFFICIAL_PREFS,
+  prefs: CostPrefs = BOOK_PREFS,
 ): number | null {
   if (usage === null || usage === undefined || book === null || book === undefined) return null
   let total = 0
@@ -262,6 +262,13 @@ export function estimateSessionCost(
   return any ? toCurrency(total * prefs.multiplier, currency, prefs) : null
 }
 
+/** One period bucket's billed tokens; a missing bucket bills nothing. */
+function bucketTokensOf(bucket: unknown): number {
+  const b = asRecord(bucket)
+  if (b === null) return 0
+  return numOf(b.uncached) + numOf(b.cacheRead) + numOf(b.cacheWrite) + numOf(b.output)
+}
+
 export function billedTokensOf(usage: SessionCostUsage | null | undefined): number {
   if (usage === null || usage === undefined) return 0
   let total = 0
@@ -271,11 +278,7 @@ export function billedTokensOf(usage: SessionCostUsage | null | undefined): numb
     for (const model of Object.keys(models)) {
       const periods = asRecord(models[model])
       if (periods === null) continue
-      for (const period of ['peak', 'off'] as const) {
-        const bucket = asRecord(periods[period])
-        if (bucket === null) continue
-        total += numOf(bucket.uncached) + numOf(bucket.cacheRead) + numOf(bucket.cacheWrite) + numOf(bucket.output)
-      }
+      for (const period of ['peak', 'off'] as const) total += bucketTokensOf(periods[period])
     }
   }
   return total
@@ -330,23 +333,19 @@ export function displayCurrencyOf(locale: LocaleService): CostCurrency {
 }
 
 export function formatPriceRate(amount: number, currency: CostCurrency): string {
-  return (currency === 'cny' ? '¥' : '$') + amount.toFixed(2)
+  return (currency === 'cny' ? '¥' : '$') + (amount >= 0.1 ? amount.toFixed(2) : amount.toPrecision(2))
 }
 
 /** One billed model's breakdown line: its tokens, priced cost, and where the
- * price came from — or why nothing priced. The two shapes split on `cost` so a
- * null-cost line always carries its verdict. */
+ * price came from — or, for an unpriced line, the book branch to amend and why
+ * nothing priced. The two shapes split on `cost`. */
 interface CostModelPricedLine {
   provider: string
   model: string
-  /** The line's billed tokens over all buckets and periods. */
   tokens: number
-  /** The line's priced cost in the display currency. */
   cost: number
-  /** The price face's registry ids — the book's mapping source. */
   pid: string
   mid: string
-  /** The book's per-1M rates at the face (unmultiplied). */
   rate: PriceTriple
 }
 
@@ -355,10 +354,10 @@ interface CostModelUnpricedLine {
   model: string
   tokens: number
   cost: null
-  pid: null
+  /** The book branch the hunt checked first (null: no book loaded at all). */
+  pid: string | null
   mid: null
   rate: null
-  /** Why nothing priced. */
   reason: UnpricedReason
 }
 
@@ -371,7 +370,7 @@ export function costBreakdownOf(
   usage: SessionCostUsage | null | undefined,
   book: ModelBook | null | undefined,
   currency: CostCurrency,
-  prefs: CostPrefs = OFFICIAL_PREFS,
+  prefs: CostPrefs = BOOK_PREFS,
 ): CostModelLine[] {
   if (usage === null || usage === undefined) return []
   const lines: CostModelLine[] = []
@@ -382,15 +381,11 @@ export function costBreakdownOf(
     for (const model of Object.keys(models)) {
       const periods = asRecord(models[model])
       if (periods === null) continue
-      let tokens = 0
-      for (const period of ['peak', 'off'] as const) {
-        const bucket = asRecord(periods[period])
-        if (bucket === null) continue
-        tokens += numOf(bucket.uncached) + numOf(bucket.cacheRead) + numOf(bucket.cacheWrite) + numOf(bucket.output)
-      }
+      const tokens = bucketTokensOf(periods.peak) + bucketTokensOf(periods.off)
       const found = priceFaceDetailedOf(book, provider, model, prefs)
       if (found.face === null) {
-        lines.push({ provider, model, tokens, cost: null, pid: null, mid: null, rate: null, reason: found.reason })
+        const branch = found.reason === 'no-book' ? null : modelsDevProviderOf(provider)
+        lines.push({ provider, model, tokens, cost: null, pid: branch, mid: null, rate: null, reason: found.reason })
         continue
       }
       const cost = toCurrency(priceBuckets(periods, found.face.rate, deepseek, prefs) * prefs.multiplier, currency, prefs)

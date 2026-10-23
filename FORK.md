@@ -9,14 +9,15 @@ to install it.
 
 ## What the fork adds
 
-1. **Pricing disclosure** — the cost KPI card opens a breakdown of every billed model, grouped by provider (collapsed by
-   default, so a wide account stays readable). Each provider row shows its token volume and price, and expands into its
-   models with the price source: the registry branch and model id it priced from, or why nothing priced (`no book`,
-   `unknown model`, `ambiguous`).
-2. **Usage window** — the KPI row's usage chart covers the last 7 or 30 days (configurable), not a fixed week.
+1. **Pricing disclosure** — its own card under the KPI row: every billed model of the range, grouped by the provider
+   that billed it. Groups start collapsed (a provider row carries its token volume and price); opening one lists its
+   models with tokens, cost, the unit rate and the price source — the registry branch and model id it priced from, or,
+   for a model the book does not map yet, the branch to amend plus a hint on how to map it.
+2. **Usage window** — the KPI row's usage chart covers the last 30 days by default, or 7 (configurable), instead of a
+   fixed week.
 3. **Pricing preferences** — settings gain a `Cost estimation` group: display currency rate, peak factor, multiplier,
-   whether actual spend is shown, and the pricing basis (`book` = the registry's listed price, `official` = the vendor's
-   own listing for known model aliases).
+   whether actual spend is shown, and the pricing basis (`official` by default = the vendor's own listing for known
+   model aliases; `book` = the registry's listed price for the billed provider).
 4. **Official-listing aliases** — `glm-5.3-flash`, `glm-5.3`, `deepseek-*-flash` (i.e. DeepSeek V4.1 Flash) and
    `claude-sonnet-5-5` price from their vendor's first-party listing instead of whatever a reseller branch charges,
    regardless of which provider id the traffic actually went through. Undeclared aliases (a genuinely different tier

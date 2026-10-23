@@ -202,7 +202,6 @@ button.lc-heat-cell:hover { box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--col
 .lc-ov-pager-btn:disabled { opacity: 0.4; cursor: default; }
 .lc-ov-pager-n { color: var(--dsw-alias-label-secondary); font-size: 11px; font-variant-numeric: tabular-nums; white-space: nowrap; }
 
-/* The cost KPI's disclosure: a compact per-model pricing table under the sub-line. */
 /* The pricing disclosure band: one row per vendor, its models folded underneath. */
 .lc-ov-cost-card { margin-bottom: 10px; }
 .lc-ov-cost-groups { display: flex; flex-direction: column; gap: 2px; }

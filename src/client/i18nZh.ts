@@ -573,6 +573,7 @@ export const DICT_ZH = {
   'ov.cost.reason.no-book': '价格表未加载',
   'ov.cost.reason.unknown-model': '价格表无此模型',
   'ov.cost.reason.ambiguous': '多个候选价格，无法确定',
+  'ov.cost.mapTip': '此分支尚无该模型的价格：可在价目册补该 id，或在 officialPrices.ts 加别名映射',
   'ov.kpi.toolSub': '工具执行 {dur}',
   'ov.kpi.wallSub': '模型调用 {n}',
   'ov.stats.empty': '统计范围内暂无 Token 用量',

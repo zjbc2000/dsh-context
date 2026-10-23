@@ -73,23 +73,16 @@ export function makeOverviewPanel(
     return activeLocale() === 'zh' ? 'cny' : 'usd'
   }
 
-  function OverviewBody(props: OverviewPanelProps): ReactElement | null {    const { book } = useModelPrices()
+  function OverviewBody(props: OverviewPanelProps): ReactElement | null {
+    const { book } = useModelPrices()
     const snapshot = sessionsSnapshotOf(props)
     const wsSnapshot = workspacesSnapshotOf(props)
+    const stored = useSyncExternalStore(subscribeSettings, () => settings.store.getSnapshot())
+    const costPrefs = useMemo(() => costPrefsOf(stored), [stored])
     // The preset follows the served default until the reader picks one; a pick is written back as the new default where
     // settings are writable, and a late-arriving section still lands while none is picked.
-    const configuredRange = useSyncExternalStore(subscribeSettings, () => settings.defaultOverviewRange())
-    // The cost figures' display preferences: read per render off the store so a
-    // settings edit re-prices the band, the chart, and the breakdown alike.
-    const usageWindow = useSyncExternalStore(subscribeSettings, () => settings.usageWindow())
-    const fxRate = useSyncExternalStore(subscribeSettings, () => settings.costFxRate())
-    const peakFactor = useSyncExternalStore(subscribeSettings, () => settings.costPeakFactor())
-    const multiplier = useSyncExternalStore(subscribeSettings, () => settings.costMultiplier())
-    const actualPrice = useSyncExternalStore(subscribeSettings, () => settings.costActualPrice())
-    const priceBasis = useSyncExternalStore(subscribeSettings, () => settings.costPriceBasis())
-    const costPrefs = costPrefsOf({
-      costFxRate: fxRate, costPeakFactor: peakFactor, costMultiplier: multiplier, costActualPrice: actualPrice, costPriceBasis: priceBasis,
-    })
+    const configuredRange = stored.overviewRange
+    const usageWindow = stored.usageWindow
     const [picked, setPicked] = useState<OverviewRange | null>(null)
     const preset = picked ?? configuredRange
     const [custom, setCustom] = useState<DayRange | null>(null)
@@ -232,8 +225,7 @@ export function makeOverviewPanel(
                       <span className="lc-stat-label">{t('stats.cost')}</span>
                       <span className="lc-stat-value">
                         {kpi.cost === null ? '—' : formatCost(kpi.cost, currency)}
-                        {/* The actual-price badge marks a figure the multiplier moved off the book's own. */}
-                        {actualPrice === 'show' && costPrefs.multiplier !== 1 && (
+                        {costPrefs.multiplier !== 1 && (
                           <span className="lc-ov-kpi-mult" title={t('ov.kpi.multTip')}>×{costPrefs.multiplier}</span>
                         )}
                       </span>
@@ -261,7 +253,6 @@ export function makeOverviewPanel(
                   <OverviewTokens tokens={kpi.tokenParts} />
                   <StatsTiming timing={kpi.timing} />
                 </div>
-                {/* The pricing disclosure owns a full-width band: grouped by vendor, folded by model. */}
                 <CostCard lines={breakdown} currency={currency} prefs={costPrefs} />
                 <div className="lc-ov-body">
                   <div className="lc-ov-left">

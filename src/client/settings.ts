@@ -1,5 +1,5 @@
 import type { CostActualPrice, CostFxRate, CostPriceBasis, CostMultiplier, CostPeakFactor, DefaultDeltaBase, DefaultFileSort, DefaultGranularity, DefaultDurationCurve, DefaultOverviewRange, DefaultPlacement, DefaultToolSort, DefaultTrendMode, FleetTab, InsightsEntry, OverviewAutoSteps, SettingsField, UsageWindow } from '../shared/types'
-import { OFFICIAL_PREFS, type CostPrefs } from './cost'
+import { BOOK_PREFS, type CostPrefs } from './cost'
 
 export type { DefaultDeltaBase, DefaultFileSort, DefaultToolSort, SettingsField } from '../shared/types'
 
@@ -118,7 +118,7 @@ function prefsOf(value: unknown): Prefs {
 }
 
 export function createContextSettings(): ContextSettings {
-  let state: SettingsState = { status: 'loading', placement: 'all', granularity: 'step', mode: 'total', deltaBase: 'step', toolSort: 'count', fileSort: 'lines', insightsEntry: 'show', durationCurve: 'show', overviewAutoSteps: '200', overviewRange: '30d', fleetTab: 'show', usageWindow: '7d', costFxRate: 'official', costPeakFactor: '2', costMultiplier: '1', costActualPrice: 'hide', costPriceBasis: 'book', promptPrefix: '', promptSuffix: '', writable: false }
+  let state: SettingsState = { status: 'loading', placement: 'all', granularity: 'step', mode: 'total', deltaBase: 'step', toolSort: 'count', fileSort: 'lines', insightsEntry: 'show', durationCurve: 'show', overviewAutoSteps: '200', overviewRange: '30d', fleetTab: 'show', usageWindow: '30d', costFxRate: 'official', costPeakFactor: '2', costMultiplier: '1', costActualPrice: 'hide', costPriceBasis: 'official', promptPrefix: '', promptSuffix: '', writable: false }
   let scope: SettingsScopeLike | undefined
   const listeners = new Set<() => void>()
   /** Every field is a scalar, so a shallow compare is the identity check; a new preference joins it automatically. */
@@ -225,7 +225,7 @@ export function costPrefsOf(
   state: Pick<SettingsState, 'costFxRate' | 'costPeakFactor' | 'costMultiplier' | 'costActualPrice' | 'costPriceBasis'>,
 ): CostPrefs {
   return {
-    usdPerCny: state.costFxRate === 'official' ? OFFICIAL_PREFS.usdPerCny : 1 / Number(state.costFxRate),
+    usdPerCny: state.costFxRate === 'official' ? BOOK_PREFS.usdPerCny : 1 / Number(state.costFxRate),
     peakFactor: Number(state.costPeakFactor),
     multiplier: state.costActualPrice === 'show' ? Number(state.costMultiplier) : 1,
     priceBasis: state.costPriceBasis,

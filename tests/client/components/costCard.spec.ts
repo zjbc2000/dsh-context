@@ -2,7 +2,7 @@ import { createElement as h } from 'react'
 import assert from 'node:assert/strict'
 import { describe, test } from 'vitest'
 import { costGroupsOf, makeCostCard } from '../../../src/client/components/costCard'
-import { OFFICIAL_PREFS, type CostModelLine } from '../../../src/client/cost'
+import { BOOK_PREFS, type CostModelLine } from '../../../src/client/cost'
 import { click, makeKit, mount, query, queryAll, text } from '../helpers/kit'
 
 const CostCard = makeCostCard(makeKit())
@@ -18,7 +18,7 @@ function unpriced(provider: string, model: string, tokens: number, reason: 'no-b
 }
 
 async function open(props: { lines: readonly CostModelLine[]; currency?: 'cny' | 'usd' }) {
-  return mount(h(CostCard, { lines: props.lines, currency: props.currency ?? 'usd', prefs: OFFICIAL_PREFS }))
+  return mount(h(CostCard, { lines: props.lines, currency: props.currency ?? 'usd', prefs: BOOK_PREFS }))
 }
 
 describe('costGroupsOf', () => {
@@ -69,7 +69,7 @@ describe('CostCard', () => {
     assert.ok(text(card).includes('2 providers · 2 models'))
     const rows = queryAll<HTMLButtonElement>(card, '.lc-ov-cost-prow')
     assert.deepEqual(rows.map(r => r.querySelector('.lc-ov-cost-pname')?.textContent), ['azure', 'deepseek'])
-    assert.ok(text(rows[0]).includes('1 models'))
+    assert.ok(text(rows[0]).includes('1 model(s)'))
     assert.equal(rows[0].getAttribute('aria-expanded'), 'false')
     assert.equal(query(card, '.lc-ov-cost-ptokens').textContent, '1.5M')
     assert.equal(query(card, '.lc-ov-cost-pcost').textContent, '$3.00')
@@ -98,7 +98,7 @@ describe('CostCard', () => {
     const cells = queryAll(table, 'tbody tr').map(tr => queryAll(tr, 'td').map(td => td.textContent))
     assert.deepEqual(cells[0].slice(0, 3), ['gpt-6.1 gpt-6.1-sol', '1.5M', '$3.00'])
     // Unit rates convert into the display currency, in miss · hit · out order.
-    assert.equal(cells[0][3], '$0.14 · $0.01 · $0.28')
+    assert.equal(cells[0][3], '$0.14 · $0.014 · $0.28')
     assert.equal(cells[0][4], 'azure · gpt-6.1-sol')
     // The unpriced line keeps the face hunt's verdict, and dashes its rate.
     assert.deepEqual(cells[1], ['mystery', '500', '—', '—', 'Model not in the price book'])
@@ -151,7 +151,7 @@ describe('CostCard', () => {
     await click(query(m.container, '.lc-ov-cost-prow'))
     const cells = queryAll(m.container, 'tbody td')
     assert.equal(cells[2].textContent, '¥1.00')
-    assert.ok(cells[3].textContent?.startsWith('¥0.93 · ¥0.09 · ¥1.87'), cells[3].textContent ?? '')
+    assert.ok(cells[3].textContent?.startsWith('¥0.93 · ¥0.093 · ¥1.87'), cells[3].textContent ?? '')
     await m.unmount()
   })
 })

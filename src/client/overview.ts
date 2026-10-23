@@ -6,7 +6,7 @@ import { dayKeyOf, endOfDayKey, startOfDayKey } from '../shared/days'
 import { BACKFILL_ROUTE } from './apiRoutes'
 import { billedParts } from './categories'
 import { cacheHitPercent } from './format'
-import { estimateSessionCost, mergeCostUsage, OFFICIAL_PREFS } from './cost'
+import { estimateSessionCost, mergeCostUsage, BOOK_PREFS } from './cost'
 import type { CostCurrency, CostPrefs, ModelBook } from './cost'
 import { agentRowOf, familyChildrenOf, type AgentRow } from './agentTree'
 import { activityOf, asRecord, timelineOf, type ClientCtx, type SessionsFace } from './services'
@@ -644,7 +644,7 @@ export function kpisOf(
   book: ModelBook | null | undefined,
   currency: CostCurrency,
   scope?: RangeWindow,
-  prefs: CostPrefs = OFFICIAL_PREFS,
+  prefs: CostPrefs = BOOK_PREFS,
 ): OverviewKpis {
   // Every figure folds the SAME daily ledger over the window; the lifetime heads serve only no-scope (or no-ledger) callers.
   let usage: SessionCostUsage | null = null
@@ -684,7 +684,6 @@ export function kpisOf(
     tokens: totals?.total ?? 0,
     turns,
     cost: estimateSessionCost(usage, book, currency, prefs),
-    // The merged usage the cost figures priced — the breakdown disclosure's source.
     usage,
     costSessions,
     cacheHit: totals === null ? null : cacheHitPercent(totals.cacheRead, totals.input + totals.cacheRead + totals.cacheWrite),
@@ -711,7 +710,7 @@ export function aggregateDays(
   rows: readonly OverviewRow[],
   book: ModelBook | null | undefined,
   currency: CostCurrency,
-  prefs: CostPrefs = OFFICIAL_PREFS,
+  prefs: CostPrefs = BOOK_PREFS,
 ): Record<string, DayTotals> {
   const merged: Record<string, { tokens: number; requests: number; sessions: number; fees: SessionCostUsage[] }> = {}
   const byKey: Record<string, { tokens: number; requests: number; sessions: number; fees: SessionCostUsage[] } | undefined> = merged
