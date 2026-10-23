@@ -1,5 +1,5 @@
-/** The /context command's centered dialog: the same pushed `contextTimeline` data as the Context tab, distilled to the
- * current composition and the shared browser. */
+/** The `/context` command's centered dialog: the same pushed `contextTimeline` as the Context tab, distilled to the current
+ * composition and the shared browser. */
 
 import { createElement as h, useCallback, useLayoutEffect, useMemo, useRef, useState, type ReactElement } from 'react'
 import { makeAttachmentOpener } from '../attachmentSource'
@@ -67,8 +67,7 @@ export function makeContextModal(
       [ctx, sessionId],
     )
 
-    // The first render can race the declared inject (a watch rebuild remounts this overlay before the fiber re-fires),
-    // so both fetchers below must rebuild when the face lands or is revoked.
+    // A watch rebuild can remount this overlay before the declared inject re-fires: rebuild the fetchers when the face lands.
     const historyFace = useHistoryFace()
 
     const fetchContent = useMemo(
@@ -91,7 +90,6 @@ export function makeContextModal(
       if (scope !== undefined) scope.bail(scope, 'slash/input-consume-token', { guard })
     }, [ctx, sessionId])
 
-    // Capture-phase Escape close + focus restore (the shared overlay contract).
     useEscapeClose(open, close)
 
     // The sidebar tracks are measured once before first paint, then followed while open: drags, collapse toggles, and

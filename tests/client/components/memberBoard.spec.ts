@@ -1,8 +1,3 @@
-// MemberBoard — every family agent in one panel: the team roster as full cards (identity, status,
-// model, duty, latest reply, owner-filter interlock), the other agents as cards in the same form
-// (label as the name, run meta in place of the duty line), and the toolbar (search / status / sort)
-// steering both sections, down to the no-team and solo guidance.
-
 import { act, createElement as h, type ReactElement } from 'react'
 import assert from 'node:assert/strict'
 import { describe, test } from 'vitest'
@@ -23,7 +18,6 @@ async function typeIn(input: HTMLInputElement, value: string): Promise<void> {
   })
 }
 
-/** A controlled select flips through the same native-setter idiom. */
 async function selectIn(select: HTMLSelectElement, value: string): Promise<void> {
   await act(async () => {
     Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value')?.set?.call(select, value)
@@ -103,7 +97,6 @@ describe('MemberBoard — team cards', () => {
       detailOf: id => details.get(id),
       pinnedId: 'w1',
     })))
-    // Four roster cards, then the three other-agents cards in the same form.
     const cards = queryAll(m.container, '.lc-member-card')
     assert.equal(cards.length, 7)
 
@@ -112,7 +105,6 @@ describe('MemberBoard — team cards', () => {
     assert.ok(text(lead).includes('current'))
     assert.ok(text(lead).includes('deepseek-v4'))
     assert.ok(text(lead).includes('running'))
-    // The lead is the current session: no open button.
     assert.equal(queryAll(lead, '.lc-member-open').length, 0)
 
     const worker = cards[1]
@@ -120,7 +112,6 @@ describe('MemberBoard — team cards', () => {
     assert.ok(text(worker).includes('维度2：代码质量'))
     assert.ok(text(worker).includes('schema parser landed'))
     assert.ok(text(worker).includes('1 active tasks'))
-    // The completed task does not count toward the active chip.
 
     const flaky = cards[2]
     assert.ok(flaky.className.includes('lc-member-failed'))
@@ -159,7 +150,6 @@ describe('MemberBoard — team cards', () => {
     assert.deepEqual([...pins], ['w1'])
     assert.deepEqual([...hovers], ['w1', null])
 
-    // The task chip filters without disturbing the pin; a re-click clears (controlled state).
     await click(query(worker, '.lc-member-tasks'))
     assert.deepEqual([...pins], ['w1'])
     await m.update(h(Controlled))
@@ -200,7 +190,6 @@ describe('MemberBoard — team cards', () => {
 
   test('keyboard picks report the id; the failure badge and an empty roster render', async () => {
     const pins = new Array<string>()
-    // The pin is a controlled prop: the wrapper plays the view, holding its state.
     let pinned: string | null = 'w1'
     function Controlled(): ReactElement {
       return h(MemberBoard, propsOf({
@@ -214,7 +203,6 @@ describe('MemberBoard — team cards', () => {
     }
     const m = await mount(h(Controlled))
     assert.ok(text(m.container).includes(DICT_EN['fleet.team.failureShort']))
-    // The card starts pinned (w1): Enter reports the pick (released), Space picks again.
     const card = (): HTMLElement => queryAll(m.container, '.lc-member-card')[1]
     await act(async () => { card().dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true })) })
     await m.update(h(Controlled))
@@ -239,7 +227,6 @@ describe('MemberBoard — team cards', () => {
     // No roster facts: no duty descriptions; the descriptor model stands in.
     assert.ok(text(cards[1]).includes('flash-lite'))
     assert.equal(queryAll(cards[1], '.lc-member-desc').length, 0)
-    // Members without a forest node get no open button.
     assert.equal(queryAll(m.container, '.lc-member-open').length, 0)
     await m.unmount()
   })
@@ -260,7 +247,6 @@ describe('MemberBoard — the other-agents cards', () => {
     const pins = new Array<string | null>()
     const opened: string[] = []
     const hovers: (string | null)[] = []
-    // A landed detail fills the card's reply line, like the roster cards'.
     const details = new Map<string, { detail: FleetDetail | null }>([
       ['s2', { detail: { lastReply: { time: 100, text: 'archive sealed' }, messages: [], truncated: false } }],
     ])
@@ -270,17 +256,14 @@ describe('MemberBoard — the other-agents cards', () => {
       onOpen: id => { opened.push(id) },
       onHover: id => { hovers.push(id) },
     })))
-    // The section head, then one card per plain subagent — the current session and team members stay out.
     assert.ok(text(m.container).includes(DICT_EN['fleet.board.others']))
     assert.deepEqual(otherNames(m.container), ['scout', 'archivist', 'lounger'])
     const cards = otherCards(m.container)
-    // The run meta rides the card: consumption, duration, steps — no occupancy figure.
     assert.ok(text(cards[0]).includes('800 · 42s · 5 steps'))
     assert.ok(!text(cards[0]).includes('%'))
     assert.ok(text(cards[0]).includes('deepseek-flash'))
     assert.ok(text(cards[0]).includes('running'))
     assert.ok(text(cards[1]).includes('archive sealed'), 'the landed latest reply fills the card')
-    // A stat-less agent carries no meta line and reads as inactive.
     assert.equal(queryAll(cards[2], '.lc-member-meta').length, 0)
     assert.ok(text(cards[2]).includes(DICT_EN['fleet.memberInactive']))
 
@@ -293,13 +276,11 @@ describe('MemberBoard — the other-agents cards', () => {
     assert.deepEqual(opened, ['s1'])
     assert.deepEqual([...pins], ['s1'], 'open never pins')
 
-    // Keyboard: Enter pins, an unrelated key is inert.
     await act(async () => { cards[0].dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true })) })
     await act(async () => { cards[0].dispatchEvent(new KeyboardEvent('keydown', { key: 'x', bubbles: true, cancelable: true })) })
     assert.deepEqual([...pins], ['s1', 's1'])
     await m.unmount()
 
-    // The pinned card rings; picks (click and Space) report the card's id — the parent toggles.
     const again = new Array<string>()
     const m2 = await mount(h(MemberBoard, propsOf({ pinnedId: 's1', onPin: id => { again.push(id) } })))
     const pinnedCard = otherCards(m2.container)[0]
@@ -325,7 +306,6 @@ describe('MemberBoard — the other-agents cards', () => {
 
   test('the toolbar searches, filters by status, and sorts — across both sections', async () => {
     const m = await mount(h(MemberBoard, propsOf()))
-    // Status filter: running keeps the running members' cards and the running subagent's card.
     const filters = queryAll(m.container, '.lc-fleet-filters .lc-gran-btn')
     await click(filters[1])
     assert.deepEqual(queryAll(m.container, '.lc-member-card').map(c => text(query(c, '.lc-member-name'))), ['lead', 'worker-bee', 'scout'])
@@ -335,13 +315,10 @@ describe('MemberBoard — the other-agents cards', () => {
     assert.deepEqual(queryAll(m.container, '.lc-member-card').map(c => text(query(c, '.lc-member-name'))), ['flaky-one', 'new-joiner', 'lounger'])
     await click(filters[0])
 
-    // Sort by context tokens: 800 ahead of 200 ahead of the headless idler.
     await selectIn(query(m.container, '.lc-fleet-sort'), 'tokens')
     assert.deepEqual(otherNames(m.container), ['scout', 'archivist', 'lounger'])
-    // (Spawn order coincides here; the reverse fixture order proves the sort.)
     await m.unmount()
 
-    // A headless idler mid-list exercises the sorters' null-head arms on both sides.
     const flipped: AgentForest = { ...FOREST, nodes: [FOREST.nodes[0], FOREST.nodes[1], FOREST.nodes[2], FOREST.nodes[3], FOREST.nodes[5], FOREST.nodes[4]] }
     const m2 = await mount(h(MemberBoard, propsOf({ forest: flipped })))
     assert.deepEqual(otherNames(m2.container), ['scout', 'lounger', 'archivist'], 'spawn order follows the forest')
@@ -371,7 +348,6 @@ describe('MemberBoard — guidance states', () => {
   test('no team: the note names the mode and the family cards still list', async () => {
     const m = await mount(h(MemberBoard, propsOf({ team: null })))
     assert.ok(text(m.container).includes(DICT_EN['fleet.board.noTeam']))
-    // Without a roster every non-current node is an "other agent" — in the same card form.
     assert.deepEqual(
       queryAll(m.container, '.lc-member-card .lc-member-name').map(el => el.textContent),
       ['w1', 'w2', 'scout', 'archivist', 'lounger'],

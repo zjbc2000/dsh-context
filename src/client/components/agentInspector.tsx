@@ -1,11 +1,3 @@
-/**
- * The Fleet inspector — the network card's right column, following the cursor (hover), the pin
- * (list/team/comms picks), or falling back to the current session. It stacks everything the tab
- * knows about one agent: identity badges, live figures, composition, team membership and owned
- * tasks, the descriptor composition and delegation prompt off the fleet-detail route, and the
- * inter-agent messages the landed details attest.
- */
-
 import { useEffect, useRef, useState, type ReactElement } from 'react'
 import { StateDot } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { AgentNode } from '../agentTree'
@@ -19,20 +11,18 @@ import type { ViewKit } from '../viewkit'
 
 export interface AgentInspectorProps {
   node: AgentNode
-  /** The pin (list/member/comms pick) this inspector is stuck to; null = hover-follow/current. */
+  /** Whether this inspector is stuck to a pin; false = hover-follow/current. */
   pinned: boolean
   team: FleetTeam | null
   /** The node's fleet-detail read: undefined while in flight, null detail = the route served nothing. */
   detail: { detail: FleetDetail | null } | undefined
   /** The lead's roster facts (duty descriptions ride these, not the projection). */
   roster: readonly FleetMemberInfo[]
-  /** Merged comms rows involving this node (sender or recipient). */
   comms: CommsRow[]
-  /** Display label of any session id (forest label, else the roster name, else the raw id). */
+  /** Display label of any session id (forest label, else roster name, else raw id). */
   labelOf: (id: string) => string
   onOpen: (id: string) => void
   onPin: (id: string | null) => void
-  /** An owned-task chip flashes the task on the task board. */
   onFocusTask: (id: string | null) => void
   t: ViewKit['t']
   fmt: ViewKit['fmt']
@@ -54,7 +44,6 @@ export function AgentInspector(props: AgentInspectorProps): ReactElement {
   const member = teamMemberOf(team, node.id)
   const owned = member !== null ? tasksOfOwner(team, member.name) : []
   const detail = props.detail?.detail ?? null
-  // The member's duty description rides the lead's roster facts, not the projection.
   const memberInfo = member !== null ? props.roster.find(r => r.name === member.name) : undefined
 
   const bits: string[] = []

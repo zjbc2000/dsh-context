@@ -1,7 +1,4 @@
-/** The DeepSeek platform balance behind the Context Insights page's header capsule: the figure the previous
- * open remembered paints at once, and one background read of the plugin's `/api/dsh-context/balance`
- * route (host/balance.ts) corrects it. Nothing remembered and nothing answered renders nothing — never a
- * spinner or an error where a pill should be. */
+/** The Insights header balance: the remembered figure paints at once, one background route read corrects it. */
 
 import type { PlatformBalance, PlatformBalanceEntry } from '../shared/types'
 import { BALANCE_ROUTE } from './apiRoutes'
@@ -15,7 +12,6 @@ export interface StorageFace {
   removeItem(key: string): void
 }
 
-/** Test seam: swap the storage backing the remembered figure; undefined re-detects. */
 export function setPlatformBalanceStorage(next: StorageFace | null | undefined): void {
   storage = next
 }
@@ -33,7 +29,7 @@ export function platformBalanceOf(value: unknown): PlatformBalance | null {
   const infos = Array.isArray(data.balances) ? data.balances : []
   const balances: PlatformBalanceEntry[] = []
   for (const info of infos) {
-    // A hostile entry may throw on property access; it drops whole, the entries that prove their shape serve on.
+    // A hostile entry may throw on access; it drops whole, the entries that prove their shape serve on.
     try {
       const entry = asRecord(info)
       if (entry === null) continue
@@ -53,7 +49,7 @@ export function platformBalanceOf(value: unknown): PlatformBalance | null {
     : null
 }
 
-/** Display-currency entry, falling back to the account's first — a number in another currency beats none. */
+/** Falls back to the account's first entry: a figure in another currency beats none. */
 export function balanceEntryOf(
   balance: PlatformBalance | null | undefined,
   currency: 'cny' | 'usd',
@@ -64,10 +60,7 @@ export function balanceEntryOf(
 }
 
 let cached: PlatformBalance | null = null
-/** The route read in flight, so a second open joins it instead of starting one. */
 let refreshing: Promise<void> | null = null
-/** Every open riding the in-flight read, joiners included; cleared when the read settles, so the next
- *  open starts a fresh read and a fresh set. */
 const landingCallbacks = new Set<(value: PlatformBalance) => void>()
 
 let storage: StorageFace | null | undefined
@@ -78,7 +71,7 @@ function storageFn(): StorageFace | null {
     const found: unknown = globalThis.localStorage
     storage = found === null || found === undefined ? null : found as StorageFace
   } catch {
-    // Storage can throw on mere access (some privacy modes): the capsule then has no remembered figure.
+    // Some privacy modes throw on mere storage access.
     storage = null
   }
   return storage
@@ -97,11 +90,10 @@ function rememberBalance(value: PlatformBalance | null): void {
   try {
     storageFn()?.setItem(STORAGE_KEY, JSON.stringify(value))
   } catch {
-    // A refused write (quota, privacy mode) costs only the next open's head start; the live figure renders.
+    // A refused write costs only the next open's head start; the live figure renders.
   }
 }
 
-/** One route POST, narrowed through `platformBalanceOf`. Never rejects. */
 async function readRoute(): Promise<PlatformBalance | null> {
   try {
     const response = await fetch(BALANCE_ROUTE, {
@@ -117,10 +109,7 @@ async function readRoute(): Promise<PlatformBalance | null> {
   }
 }
 
-/** One route read per open, `onRefresh` once it lands on a figure. `refreshing` is assigned before anything
- * awaits, so an open arriving mid-flight joins the read rather than starting a second one, and the read's
- * landing reports to every open riding it. A failed or absent read notifies nobody and keeps serving the
- * remembered figure; `null` means nothing to show yet. */
+/** One route read per open, `onRefresh` on landing; `refreshing` is assigned before awaiting so opens join it. */
 export function readPlatformBalance(onRefresh: (value: PlatformBalance) => void): PlatformBalance | null {
   landingCallbacks.add(onRefresh)
   if (refreshing === null) {

@@ -1,6 +1,3 @@
-// watchFleetTab (src/client/fleetTab.ts): the Fleet tab's own show/hide preference, layered on the placement
-// gate — 'hide' unwinds the registration live, 'show' brings it back, and a sidebar-only placement keeps it off.
-
 import { createElement as h, type ReactElement } from 'react'
 import assert from 'node:assert/strict'
 import { describe, test } from 'vitest'
@@ -54,7 +51,6 @@ describe('watchFleetTab — the Fleet tab\'s own gate', () => {
     const { dispose } = wire(ctx, settings)
     assert.deepEqual(ctx.slots.of('conversation.view'), [], 'a hidden tab never registers')
 
-    // An unrelated preference never remounts the tab.
     settings.set('defaultGranularity', 'turn')
     assert.deepEqual(ctx.slots.of('conversation.view'), [])
 
@@ -63,7 +59,6 @@ describe('watchFleetTab — the Fleet tab\'s own gate', () => {
     assert.equal(ctx.slots.of('conversation.view')[0].registration.id, 'fleet')
     settings.set('fleetTab', 'hide')
     assert.deepEqual(ctx.slots.of('conversation.view'), [])
-    // The subscription stops with the watcher: a later flip registers nothing.
     dispose()
     settings.set('fleetTab', 'show')
     assert.deepEqual(ctx.slots.of('conversation.view'), [])

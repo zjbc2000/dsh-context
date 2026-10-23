@@ -1,8 +1,6 @@
-/** The assistant-message action that opens the Context view at this reply's turn, registered on the harness
- * `conversation.chat.assistant-actions` seat. The matching assistant node's seq is resolved off the `useChat` node seat AT
- * RENDER TIME: that seat is a real React hook, so a click-time read throws the dispatcher guard and the jump would land
- * unpinned. An unresolvable seq still opens the view, just without a pin; a non-string message id renders nothing. */
-
+/** Assistant-message jump action on the harness's `conversation.chat.assistant-actions` seat. The matching node's seq is
+ * resolved off the `useChat` node seat AT RENDER TIME: that seat is a real React hook, so a click-time read throws the
+ * dispatcher guard and the jump lands unpinned. */
 import { type ReactElement } from 'react'
 import { Tooltip } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { ClientCtx, ConversationNodeLike, UseChatLike } from '../services'
@@ -16,7 +14,7 @@ export interface ContextJumpProps {
   useChat?: UseChatLike
 }
 
-/** Nodes are untrusted input: each element is isolated, so one hostile object that throws on property access is skipped. */
+/** Nodes are untrusted input: isolate every element, so a hostile object that throws on property access is skipped. */
 function seqOfMessageId(nodes: readonly ConversationNodeLike[] | undefined, messageId: string): number | null {
   for (const node of nodes ?? []) {
     try {
@@ -53,7 +51,7 @@ export function makeContextJumpButton(ctx: ClientCtx, kit: ViewKit): (props: Con
       if (seq !== null && typeof sessionId === 'string' && sessionId !== '') {
         requestContextFocus(sessionId, seq)
       }
-      // The sidebar expands over the chat, keeping the clicked reply in view; without that tab the activation stands alone.
+      // The sidebar expands over the chat, keeping the clicked reply in view; without that tab, activate the view tab alone.
       if (!openContextSidebar(ctx)) activateViewTab(t('tab.context'))
     }
     return (

@@ -1,7 +1,3 @@
-// The always-on compatibility matrix — CLIENT side. For every supported dsh baseline (tests/baselines.ts) the plugin's client half is
-// driven through THAT generation's faces — the seams whose drift produced the recurring client-side incidents (issues #8, #12, #26). The
-// real-code complement — the ACTUAL dsh sources per tag — runs in the `compat` vitest project (tests/compat/matrix.spec.ts).
-
 import { createElement as h } from 'react'
 import assert from 'node:assert/strict'
 import { describe, test, vi } from 'vitest'
@@ -22,8 +18,7 @@ import { baselineCtx, chatSeat, convNodes } from './baselineFaces'
 
 const kit = makeKit()
 
-// The chrome-prop capture: the plugin must hand EVERY markdown render a
-// well-formed `labels` object (the primitives REQUIRE it). Intercept the primitive.
+// The plugin must hand EVERY markdown render a well-formed `labels` object (the primitives REQUIRE it).
 const captured = vi.hoisted(() => ({ markdownProps: undefined as Record<string, unknown> | undefined }))
 vi.mock('@deepseek-ai/dsh-client-ui-primitives', async () => {
   const React = await import('react')
@@ -32,9 +27,7 @@ vi.mock('@deepseek-ai/dsh-client-ui-primitives', async () => {
       captured.markdownProps = props
       return React.createElement('div', null, String(props.text ?? ''))
     },
-    // The JSON body's tree inspector (the detail sections' auto-detected third mode).
     JsonTree: () => React.createElement('div', null, 'json-tree'),
-    // The rich-text copy control's glyphs and clipboard writer; the Plugin Info card's settings gear.
     IconCopyOutlineRegular: () => React.createElement('span', null),
     IconCheckOutlineRegular: () => React.createElement('span', null),
     IconSettingsOutlineMedium: () => React.createElement('span', null),
@@ -64,7 +57,6 @@ for (const baseline of BASELINES) {
     test('the finalized-nodes seat serves the conversation window join', () => {
       const nodes = convNodes()
       assert.deepEqual(conversationNodesOf({ useChat: chatSeat(nodes) }), nodes)
-      // A seat without the legacy slice: no join, no error.
       assert.equal(conversationNodesOf({ useChat: chatSeat(undefined) }), undefined)
     })
 
@@ -80,8 +72,7 @@ for (const baseline of BASELINES) {
 
     test('the targeted content fetch rides the gateway history face and envelope', async () => {
       const { ctx, calls } = baselineCtx()
-      // Arm the declared inject the way the client apply does; the slot is
-      // unloaded afterwards so no face stales into the next test.
+      // Arm the declared inject the way the client apply does; the slot is unloaded afterwards.
       watchHistoryFaces(asClientCtx(ctx))
       const fetcher = makeContentFetcher('s-face')
       assert.ok(fetcher !== undefined, 'the baseline history face serves a fetcher')
@@ -90,20 +81,16 @@ for (const baseline of BASELINES) {
       assert.equal(node.kind, 'user')
       assert.equal(node.seq, 4)
       assert.deepEqual(node.content, [{ type: 'text', text: 'history node hello' }])
-      // The inclusive cut pinned to the seq, the exclusive bound one past it.
       assert.deepEqual(calls.page, [{ address: { kind: 'session', sessionId: 's-face' }, throughSeq: 4, beforeSeq: 5 }])
-      // History is immutable: a re-read never re-fetches.
       await fetcher(4)
+      // History is immutable: a re-read never re-fetches.
       assert.equal(calls.page.length, 1)
       ctx.dispose()
       assert.equal(makeContentFetcher('s-face'), undefined, 'the unloaded slot leaves no face behind')
     })
 
     test('the session jump rides this generation\'s navigation seam (issue #90)', () => {
-      // The composition this line actually serves: the view-owner face always
-      // (the sidebar row click's own verb), the retired sessions-service verb
-      // only where the line still declares it — on the V4+ line the service
-      // carries NO selection at all, the exact composition issue #90 died on.
+      // The composition this line serves: the view-owner face always, the retired sessions verb only where declared.
       const { ctx } = baselineCtx()
       const nav = baseline.client.sessionNav
       const jumped: string[] = []
@@ -118,7 +105,6 @@ for (const baseline of BASELINES) {
 
     test('a failed history rpc rejects (retryable), never resolving to a fake absence', async () => {
       const { ctx } = baselineCtx()
-      // The inject resolves the page off the `remote` facade — fail it there.
       ctx.setService('remote', { session: { page: () => Promise.resolve({ ok: false }) } })
       watchHistoryFaces(asClientCtx(ctx))
       const fetcher = makeContentFetcher('s-face')
@@ -140,8 +126,6 @@ for (const baseline of BASELINES) {
       const m = await mount(h(View, props))
       const rendered = text(m.container)
       assert.ok(rendered.includes(DICT_EN['overview.title']), 'the tab rendered, not the error card')
-      // Open the user category (row order: system, tools, user, inject, assistant, tool) — its
-      // lone row auto-expands, and the joined full content rides the baseline seat.
       await click(queryAll(m.container, '.lc-br-cat-row')[2])
       assert.ok(text(m.container).includes('window node hello'), 'the conversation-window join surfaced the seat node')
       await m.unmount()
@@ -151,8 +135,6 @@ for (const baseline of BASELINES) {
       const { ctx } = baselineCtx()
       const settings = createContextSettings()
       const View = makeContextView(asClientCtx(ctx), kit, settings, makeAgentHeads())
-      // Without the registry (a below-baseline gated host, say), the deferred
-      // inject never fires: no tab, no body seat, no throw.
       assert.doesNotThrow(() => {
         watchSidebarContextTab(asClientCtx(ctx), View, kit.t, 'dsh-context')
       })
@@ -172,7 +154,6 @@ for (const baseline of BASELINES) {
 
     test('the Sidebar preview opener is optional: absent face = no opener, present face = wired', () => {
       const { ctx } = baselineCtx()
-      // No column on this generation: the file names keep their system-open only.
       assert.equal(openResourceVia(asClientCtx(ctx)), undefined, 'no navigation face = no preview opener')
       const opened: string[] = []
       ctx.setService('sidebarRight', { openResource: (address: string) => { opened.push(address) } })
@@ -184,10 +165,6 @@ for (const baseline of BASELINES) {
     })
 
     test('a throwing history-service proxy degrades the tab, never crashes it', async () => {
-      // Issue #42: a traced proxy can throw on the property READ itself
-      // ("cannot get property "remote.session" without inject") — arming the
-      // declared inject with such a hostile facade must leave the slot unset
-      // (nothing escapes the callback) and the tab renders with its static hint instead of crashing.
       const ctx = new TestClientCtx()
       ctx.setService('remote', {
         get session() { throw new Error('cannot get property "remote.session" without inject') },

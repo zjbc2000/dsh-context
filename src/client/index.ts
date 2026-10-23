@@ -1,6 +1,4 @@
-/** dsh-context — client half bundle entry. The Context view reads the harness session projection
- * `contextTimeline` (the split generation's slim head); heavy collections arrive on demand from the
- * host's detail endpoint, one read per viewing client (timelineSource.ts). */
+/** Client half bundle entry: the slim `contextTimeline` head, with heavy collections fetched on demand. */
 
 import { createElement as h } from 'react'
 import { DICT_EN, DICT_ZH } from './i18n'
@@ -22,8 +20,7 @@ import { watchPlacement } from './placement'
 import { watchSidebarContextTab } from './sidebar'
 import { makeViewKit } from './viewkit'
 
-// Import order IS cascade order among same-specificity rules: the Tailwind utilities sheet stays first,
-// then base, then the per-component sheets, which keep winning the ties.
+// Import order IS cascade order among same-specificity rules: Tailwind utilities, then base, then per-component sheets.
 import './styles/tailwind.css'
 import './styles/base.css'
 import './styles/stats.css'
@@ -34,6 +31,7 @@ import './styles/trendChart.css'
 import './styles/requestDetail.css'
 import './styles/events.css'
 import './styles/fileCard.css'
+import './styles/commandPanel.css'
 import './styles/modal.css'
 import './styles/browser.css'
 import './styles/detailSections.css'
@@ -45,20 +43,13 @@ import './styles/dateRange.css'
 
 const NS = 'dsh-context'
 
-/** The chat→Context jump entry doubles as this bundle's mount marker: no
- * preference gates it, so a ledger seating it means a mount already registered
- * the bundle's seats. */
+/** The chat→Context jump doubles as the mount marker: no preference gates it, so a seated ledger means a mount is live. */
 const JUMP_SLOT = 'conversation.chat.assistant-actions'
 const JUMP_ID = 'context-jump'
 
 function apply(ctx: ClientCtx): void {
-  // One live mount per page (dsh-context#137). Two mounts of this bundle share
-  // one slot ledger, and the client-plugin runner force-assigns a fresh
-  // shadowing priority to every registration, so the registry's same-id guard
-  // never fires across them and the session header — which renders the raw
-  // ledger and matches the active view by id — paints both copies of every
-  // seat. A marker already in the ledger means a mount is live: this one adds
-  // nothing. Fails open, so a face without the ledger view still mounts.
+  // One live mount per page: a seated marker means a mount is live; the runner's priority defeats the
+  // registry guard (docs/compatibility.md §5).
   if (entrySeated(ctx, JUMP_SLOT, JUMP_ID)) return
   ctx.effect(() => {
     return ctx.locale.register(NS, { zh: DICT_ZH, en: DICT_EN })
@@ -66,12 +57,10 @@ function apply(ctx: ClientCtx): void {
   const t = ctx.locale.bind(NS)
 
   const kit = makeViewKit(t)
-  // History faces are resolved through the DECLARED inject: a non-declared read of the traced remote proxy
-  // throws "cannot get property … without inject" and takes the view down (see historyPage.ts).
+  // History faces ride the DECLARED inject: an undeclared read of the traced proxy throws (historyPage.ts).
   watchHistoryFaces(ctx)
   const settings = createContextSettings()
-  // One page-scope cold-head cache for every agent-data reader: the Context view's stats cell and inline card
-  // (right Sidebar host), and the Fleet tab's card — all of which can be mounted at the same time.
+  // One page-scope cold-head cache for every agent-data reader: the Context view's cells and the Fleet card.
   const heads = makeAgentHeads()
   const ContextView = makeContextView(ctx, kit, settings, heads)
   const FleetView = makeFleetView(ctx, kit, heads)
@@ -94,8 +83,7 @@ function apply(ctx: ClientCtx): void {
     NS,
   ), 'dsh-context: fleet tab')
 
-  // Chat → Context jump: opens the right Sidebar's tab pinned to the reply's turn where served, else the
-  // conversation tab (contextJump.tsx; relay and activation in viewFocus.ts).
+  // Chat → Context jump: the right Sidebar tab pinned to the reply's turn where served, else the conversation tab.
   const ContextJump = makeContextJumpButton(ctx, kit)
   ctx.slots.inject(JUMP_SLOT, () => {
     return ctx.slots.register(
@@ -118,8 +106,7 @@ function apply(ctx: ClientCtx): void {
     )
   })
 
-  // Context Insights page: the panel on the keyed `main` slot and its sidebar entry on
-  // `sidebar.panellist`, both mounted or unwound by the `insightsEntry` preference (insightPage.ts).
+  // Context Insights: the keyed `main` panel and its `sidebar.panellist` entry, gated by `insightsEntry`.
   const OverviewPanel = makeOverviewPanel(ctx, kit, settings)
   ctx.effect(() => watchInsightPage(
     ctx,
@@ -138,8 +125,7 @@ function apply(ctx: ClientCtx): void {
     set: (field, value) => { settings.set(field, value) },
   })
 
-  // Preferences ride the configForms service and the Plugins page's keyed `plugins.bundle.config` slot.
-  // The deferred inject fires only where the service exists, so a host without it keeps the schema defaults.
+  // Preferences ride configForms and the Plugins page's keyed slot; without the service the schema defaults stay.
   ctx.inject(['configForms'], (raw) => {
     const c = raw as ClientCtx & { configForms?: ConfigFormsFace }
     const forms = c.configForms

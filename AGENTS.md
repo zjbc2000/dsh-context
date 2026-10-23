@@ -23,14 +23,9 @@ A DeepSeek Harness plugin for context insight, actions, and management.
 - Keep code and tests small, loosely coupled, and modular; avoid duplication.
 - After updating tests, firstly run `pnpm exec vitest run tests/<area>/<name>.spec.ts -t "<test case name>"` (regex, use `"a|b"`) to iterate on the touched test cases.
 - Ensure every source code file or test code file has less than 1000 lines.
-- Add comments only for major decisions or significant value, and update or delete outdated ones when modifying the code.
-- Comments guideline:
-  - Cleanup all the unnecessary, unhelpful or deprecated comments
-  - Cleanup all comments that related code already self-explains or self-constructs, even crossing multiple files and modules.
-  - ONLY use necessary comments for critical major decisions or significant value that cannot be self-explained by the code itself or the dsh code
-  - Use precise, clear, and concise language in comments, avoiding vague or ambiguous statements.
-  - Less comments is always better: avoid over-explaining or repeating what the code already expresses.
-  - Always try to cleanup or remove comments
+- Comments: default to none. Never add one unless it records a non-obvious decision, constraint, or invariant the code cannot express — if you cannot name that reason, do not write it.
+- Never narrate what the code does, restate names or types, or explain the change you just made.
+- When touching code, delete or shrink comments that repeat the code, state the obvious, or are outdated; reducing the comment count is always welcome.
 - Write comments, documentation, PR descriptions, and commit messages in English.
 - Generate one-time temp files in the `.tmp` directory and clean them up right after use.
 
@@ -41,7 +36,9 @@ Complete ALL of these before ANY commit:
 - Close out the to-do list, ensuring every item is completed, cleaned up or explicitly closed.
 - Review the full diff independently: every change necessary, correct, and not over-engineered.
 - Clean up generated temporary files and temporary or unhelpful comments.
-- Load the [code-review](https://github.com/mattpocock/skills/tree/main/skills/engineering/code-review) skill, run it to review all the changes, and independently verify or follow each of its suggestions after its multi-axis analysis done.
+- Self review changes and Run all these review in subagents. When analysis are all finished, INDEPENDENTLY verify each of its suggestions and consider to / not to follow them.
+  - **Spec And Standards**: MUST load and use 2 independent subagents to apply the [code-review](https://github.com/mattpocock/skills/tree/main/skills/engineering/code-review) skill.
+  - **Over-engineering**: MUST load and apply the [ponytail-review](https://github.com/DietrichGebert/ponytail/blob/main/skills/ponytail-review/SKILL.md) skill.
 - Run `pnpm run check`: it runs `pnpm run lint`, `pnpm run typecheck` and `pnpm run coverage` concurrently, prints each tool's COMPLETE output, and fails when any of them does (the same logs stay in `.tmp/check-logs/`).
   - Fix every lint and type error, and ensure 100% per-file coverage. Please capture the ALL content of the full output without truncation or tailing.
     - Example for per-file 100% coverage output:

@@ -1,8 +1,4 @@
-/**
- * The Fleet conversation tab. `defaultPlacement` decides whether this plugin serves conversation tabs at all
- * (placement.ts), and `fleetTab` is the reader's own switch for this one; the pair is re-evaluated live, so a
- * flip either way registers or unwinds the tab without touching the Context tab.
- */
+/** `defaultPlacement` decides whether tabs are served; `fleetTab` is this tab's own live switch. */
 
 import type { Translate } from './i18n'
 import { wantsConversationTabs } from './placement'
@@ -10,7 +6,6 @@ import type { ContextSettings } from './settings'
 import type { ClientCtx } from './services'
 import { watchGate } from './toggleGate'
 
-/** Right of the Context tab (order 20). */
 const FLEET_ORDER = 30
 
 export function watchFleetTab(

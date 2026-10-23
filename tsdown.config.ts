@@ -55,7 +55,8 @@ function artifactBanner(): string {
   return ['/**', ...lines, ' */', ''].join('\n')
 }
 
-// The platform-module subset this plugin requires: the shell seeds these specifiers into the frozen browser module table, so the bundle must leave them to the injected `require`. Anything else the client half imports is a build error (the purity gate below), so this list stays exactly what the bundle requires.
+// The platform-module subset this plugin requires: the shell seeds these specifiers into the frozen browser module table, so the bundle
+// must leave them to the injected `require`. Anything else is a build error (the purity gate below).
 const PLATFORM_MODULES = [
   'react', 'react/jsx-runtime', 'react-dom',
   '@deepseek-ai/dsh-client-ui-primitives',
@@ -72,7 +73,6 @@ const requested = new Set([
 ])
 const isRequested = (specifier: string): boolean => requested.has(specifier)
 
-// A production dependency is on disk in a real install and stays an import; everything else inlines.
 const productionDeps = new Set([
   ...Object.keys(pkg.dependencies ?? {}),
   ...Object.keys(pkg.peerDependencies ?? {}),
@@ -117,7 +117,6 @@ function sourceAssetPath(source: string, importer: string): string {
   return resolvePath(dirname(importer), source)
 }
 
-// The one sheet whose Tailwind utilities are compiled; every other sheet stays plain CSS.
 const TAILWIND_ENTRY = 'tailwind.css'
 
 interface WatchCapable {
@@ -238,7 +237,6 @@ export default defineConfig([
     dts: false,
     sourcemap: true,
     clean: false,
-    // The one artifact the browser downloads and parses.
     minify: true,
     deps: {
       // A require() the module table cannot answer is a guaranteed runtime throw.

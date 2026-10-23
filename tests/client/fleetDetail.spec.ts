@@ -1,6 +1,3 @@
-// fleetDetail.ts — the fleet route's client half: the sanitizing parse, the freshness-stamped
-// promise ledger, and the cross-session comms merge.
-
 import assert from 'node:assert/strict'
 import { afterEach, describe, test, vi } from 'vitest'
 import {
@@ -50,7 +47,6 @@ describe('fleetDetailOf — the sanitizing parse', () => {
     assert.equal(fleetDetailOf('x'), null)
     const bare = fleetDetailOf({})
     assert.deepEqual(bare, { messages: [], truncated: false })
-    // A non-array messages field and a junk descriptor both drop whole.
     const junk = fleetDetailOf({ messages: 'nope', descriptor: { mode: 'weird' }, truncated: 1 })
     assert.deepEqual(junk, { messages: [], truncated: false })
   })
@@ -70,7 +66,6 @@ describe('fleetDetailOf — the sanitizing parse', () => {
       { name: 'bare', description: '' },
     ])
     assert.deepEqual(detail?.lastReply, { time: 42, text: '报告完毕' })
-    // Junk reply shapes stay absent.
     assert.equal(fleetDetailOf({ lastReply: { text: 1 } })?.lastReply, undefined)
     assert.equal(fleetDetailOf({ lastReply: 'nope' })?.lastReply, undefined)
     assert.equal(fleetDetailOf({ roster: 'nope' })?.roster, undefined)
@@ -137,7 +132,6 @@ describe('FleetDetailCache', () => {
     assert.equal(b, null)
     assert.equal(reads, 1)
 
-    // An older stamp keeps the settled read; a newer one refetches.
     await cache.fetch('s1', 3)
     assert.equal(reads, 1)
     await cache.fetch('s1', 6)
@@ -179,7 +173,6 @@ describe('FleetDetailCache', () => {
     const cache = new FleetDetailCache()
     await Promise.all([cache.fetch('s1', 5), cache.fetch('s1', 5, true)])
     assert.equal(routes.length, 2, 'separate ledgers, separate reads')
-    // Each ledger dedupes on its own; invalidate drops both.
     await cache.fetch('s1', 3)
     await cache.fetch('s1', 3, true)
     assert.equal(routes.length, 2)

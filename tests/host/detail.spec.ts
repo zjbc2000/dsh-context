@@ -1,6 +1,3 @@
-// The on-demand detail route (src/host/detail.ts) and its gate: the nested-inject gating on the connection/sessions faces (load-order
-// independent), the live flip on unload, and typed outcomes — never a throw into the transport.
-
 import assert from 'node:assert/strict'
 import { describe, test, vi } from 'vitest'
 import type { Context } from '@deepseek-ai/cordis'
@@ -24,9 +21,8 @@ interface CtxSpec {
   stateOf?: (session: unknown, key: string) => unknown
 }
 
-/** A minimal host ctx double with cordis inject semantics: the callback runs
- * once its dependency list completes (here: immediately when the services
- * map has them, never otherwise), and its returned disposer is collected. */
+/** A minimal host ctx double with cordis inject semantics: the callback runs once its dependency list
+ * completes, and its returned disposer is collected. */
 function ctxOf(spec: CtxSpec): { ctx: Context; captured: { path?: string; fetch?: RouteFetch }; disposers: (() => void)[] } {
   const captured: { path?: string; fetch?: RouteFetch } = {}
   const disposers: (() => void)[] = []
@@ -49,7 +45,6 @@ function ctxOf(spec: CtxSpec): { ctx: Context; captured: { path?: string; fetch?
       if (typeof d === 'function') disposers.push(d as () => void)
     },
   }
-  // Wire the connection face so register() captures its route.
   if (spec.connection !== undefined && spec.connection !== null) {
     const conn = spec.connection as { fetch?: { register?: unknown } }
     if (typeof conn.fetch?.register === 'function') {
@@ -96,7 +91,6 @@ describe('watchDetailChannel gating', () => {
     assert.equal(watchDetailChannel(ctxOf({ sessions: sessionsWith(okSession()) }).ctx, BOUNDS).live, false)
     const connOnly = ctxOf({ connection: { fetch: { register: () => () => {} } } })
     assert.equal(watchDetailChannel(connOnly.ctx, BOUNDS).live, false)
-    // A connection without the fetch.register face, or a sessions without get.
     assert.equal(watchDetailChannel(ctxOf({ connection: { fetch: {} }, sessions: sessionsWith(okSession()) }).ctx, BOUNDS).live, false)
     assert.equal(watchDetailChannel(ctxOf({
       connection: { fetch: { register: () => () => {} } },
@@ -113,7 +107,6 @@ describe('watchDetailChannel gating', () => {
     assert.equal(gate.live, true)
     assert.equal(captured.path, '/api/dsh-context/detail')
     assert.equal(typeof captured.fetch, 'function')
-    // Unload: the inject fiber's disposer closes the gate (the wire flips back to inline).
     for (const d of disposers) d()
     assert.equal(gate.live, false)
   })
@@ -214,7 +207,6 @@ describe('the detail route', () => {
     assert.ok(result.value.head.current.total > 0, 'the slim head rides the cold fold (the graph ring fetch)')
     assert.deepEqual(observedOptions, { projectionMode: 'none' }, 'the observation skips projection work')
     assert.equal(disposed, 1, 'the observation lease disposed after the fold')
-    // A session nothing can observe (the query resolves null) stays a typed null.
     assert.deepEqual(await call(captured, { sessionId: 'nobody' }), { ok: true, value: null })
   })
 
@@ -235,7 +227,6 @@ describe('the detail route', () => {
   })
 
   test('a sessionQuery without the observe face (or a rejecting read) degrades cleanly', async () => {
-    // Face present but the method missing.
     const noFace = ctxOf({
       connection: { fetch: { register: () => () => {} } },
       sessions: sessionsWith(okSession()),
@@ -243,8 +234,6 @@ describe('the detail route', () => {
     })
     watchDetailChannel(noFace.ctx, BOUNDS)
     assert.deepEqual(await call(noFace.captured, { sessionId: 'cold' }), { ok: true, value: null })
-
-    // The observation read rejects (persistence down).
     const rejecting = ctxOf({
       connection: { fetch: { register: () => () => {} } },
       sessions: sessionsWith(okSession()),
@@ -312,7 +301,6 @@ describe('the detail route', () => {
   })
 
   test('hostile reads degrade to the failure envelope, never a throw', async () => {
-    // sessions.get throwing.
     const throwingGet = ctxOf({
       connection: { fetch: { register: () => () => {} } },
       sessions: {
@@ -326,8 +314,6 @@ describe('the detail route', () => {
     assert.equal(r1.ok, false)
     assert.equal(r1.error.code, 'gateway/internal')
     assert.equal(r1.error.message, 'hostile sessions')
-
-    // stateOf throwing.
     const throwingState = ctxOf({
       connection: { fetch: { register: () => () => {} } },
       sessions: sessionsWith(okSession()),
@@ -492,7 +478,6 @@ describe('the cold fold (issue #145)', () => {
     const first = coldCtx(observe, { backend: 'one' })
     watchDetailChannel(first.ctx, BOUNDS)
     await call(first.captured, { sessionId: 'cold1' })
-    // The storage backend was replaced (its revision tokens say nothing anymore): refold.
     const second = coldCtx(observe, { backend: 'two' })
     watchDetailChannel(second.ctx, BOUNDS)
     await call(second.captured, { sessionId: 'cold1' })

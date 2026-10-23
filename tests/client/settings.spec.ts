@@ -1,12 +1,8 @@
-// Settings binding (src/client/settings.ts): the local-echo store over the harness configForms section.
-
 import assert from 'node:assert/strict'
 import { describe, test } from 'vitest'
 import { OFFICIAL_PREFS } from '../../src/client/cost'
 import { createContextSettings, costPrefsOf, overviewThresholdOf, type ContextSettings, type SettingsScopeLike } from '../../src/client/settings'
 
-/** A faithful in-memory settings form (the harness configForms.get contract:
- * getSnapshot/subscribe/set), not a mock of plugin code. */
 class TestSettingsScope implements SettingsScopeLike {
   private snapshot: { status: string; value: unknown; writable: boolean }
   private readonly listeners = new Set<() => void>()
@@ -25,7 +21,6 @@ class TestSettingsScope implements SettingsScopeLike {
     return () => { this.listeners.delete(listener) }
   }
 
-  /** When true the write rejects, like a transport failure on the wire call. */
   failSet = false
 
   set(field: string, value: unknown): Promise<void> {
@@ -33,7 +28,6 @@ class TestSettingsScope implements SettingsScopeLike {
     return this.failSet ? Promise.reject(new Error('write failed')) : Promise.resolve()
   }
 
-  /** Push a new snapshot, like the Host delivering a section update. */
   emit(snapshot: { status: string; value: unknown; writable: boolean }): void {
     this.snapshot = snapshot
     for (const listener of this.listeners) listener()
@@ -50,7 +44,7 @@ describe('createContextSettings defaults', () => {
       mode: 'total',
       deltaBase: 'step',
       toolSort: 'count',
-      fileSort: 'count',
+      fileSort: 'lines',
       insightsEntry: 'show',
       durationCurve: 'show',
       overviewAutoSteps: '200',
@@ -71,7 +65,7 @@ describe('createContextSettings defaults', () => {
     assert.equal(s.defaultTrendMode(), 'total')
     assert.equal(s.defaultDeltaBase(), 'step')
     assert.equal(s.defaultToolSort(), 'count')
-    assert.equal(s.defaultFileSort(), 'count')
+    assert.equal(s.defaultFileSort(), 'lines')
     assert.equal(s.insightsEntry(), 'show')
     assert.equal(s.defaultDurationCurve(), 'show')
     assert.equal(s.overviewAutoSteps(), '200')
@@ -158,14 +152,12 @@ describe('set', () => {
     scope.failSet = true
     s.set('defaultTrendMode', 'delta')
     assert.equal(s.defaultTrendMode(), 'delta', 'the optimistic echo lands first')
-    // Let the rejection settle: the catch re-syncs from the scope's snapshot.
     await new Promise(resolve => setTimeout(resolve, 0))
     assert.equal(s.defaultTrendMode(), 'total', 'the echo rolls back to the scope truth')
   })
 
   test('a rejected write keeps a preference the scope does not carry', async () => {
-    // The scope's snapshot lacks the field entirely (older Host half): the
-    // rollback sync keeps the in-session choice rather than dropping it.
+    // The scope's snapshot lacks the field entirely (older Host half): the rollback keeps the in-session choice.
     const s = createContextSettings()
     const scope = new TestSettingsScope({ status: 'ready', value: {}, writable: true })
     s.attach(scope)
@@ -176,8 +168,6 @@ describe('set', () => {
   })
 
   test('a rejected placement write degrades to all when the scope carries no valid value', async () => {
-    // Fail open: the unpersisted echo must not keep hiding an entry until
-    // the next reload — with nothing valid in the scope's truth, fall back to `all`.
     const s = createContextSettings()
     const scope = new TestSettingsScope({ status: 'ready', value: {}, writable: true })
     s.attach(scope)
@@ -189,7 +179,6 @@ describe('set', () => {
   })
 
   test('a rejected placement write rolls back to the scope\'s valid truth', async () => {
-    // The scope truth itself is a valid placement: the rollback restores it, no forced degrade.
     const s = createContextSettings()
     const scope = new TestSettingsScope({ status: 'ready', value: { defaultPlacement: 'sidebar' }, writable: true })
     s.attach(scope)
@@ -337,7 +326,7 @@ describe('attach', () => {
         mode: 'total',
         deltaBase: 'step',
         toolSort: 'count',
-        fileSort: 'count',
+        fileSort: 'lines',
         insightsEntry: 'show',
         durationCurve: 'show',
         overviewAutoSteps: '200',
@@ -368,7 +357,7 @@ describe('attach', () => {
     assert.equal(s.defaultTrendMode(), 'total')
     assert.equal(s.defaultDeltaBase(), 'step')
     assert.equal(s.defaultToolSort(), 'count')
-    assert.equal(s.defaultFileSort(), 'count')
+    assert.equal(s.defaultFileSort(), 'lines')
     assert.equal(s.insightsEntry(), 'show')
     assert.equal(s.defaultDurationCurve(), 'show')
     assert.equal(s.overviewAutoSteps(), '200')
@@ -379,7 +368,6 @@ describe('attach', () => {
   })
 
   test('an invalid scope placement degrades to all instead of keeping the current one', () => {
-    // Fail open on the read path too: a value the plugin cannot understand must not strand a previously chosen placement.
     const s = createContextSettings()
     s.set('defaultPlacement', 'tab')
     assert.equal(s.defaultPlacement(), 'tab')
@@ -389,7 +377,6 @@ describe('attach', () => {
   })
 
   test('an invalid scope insights entry degrades to show instead of keeping the current one', () => {
-    // Fail open on the read path too: a config problem must not leave the panel's entry hidden.
     const s = createContextSettings()
     s.set('insightsEntry', 'hide')
     assert.equal(s.insightsEntry(), 'hide')
@@ -429,7 +416,7 @@ describe('attach', () => {
     const s = createContextSettings()
     s.attach(new TestSettingsScope({
       status: 'ready',
-      value: { defaultPlacement: 'all', defaultGranularity: 'step', defaultTrendMode: 'total', defaultDeltaBase: 'step', defaultToolSort: 'count', defaultFileSort: 'count', insightsEntry: 'show', overviewAutoSteps: '200', defaultOverviewRange: 'all' },
+      value: { defaultPlacement: 'all', defaultGranularity: 'step', defaultTrendMode: 'total', defaultDeltaBase: 'step', defaultToolSort: 'count', defaultFileSort: 'lines', insightsEntry: 'show', overviewAutoSteps: '200', defaultOverviewRange: 'all' },
       writable: false,
     }))
     assert.equal(s.defaultPlacement(), 'all')
@@ -437,7 +424,7 @@ describe('attach', () => {
     assert.equal(s.defaultTrendMode(), 'total')
     assert.equal(s.defaultDeltaBase(), 'step')
     assert.equal(s.defaultToolSort(), 'count')
-    assert.equal(s.defaultFileSort(), 'count')
+    assert.equal(s.defaultFileSort(), 'lines')
     assert.equal(s.insightsEntry(), 'show')
     assert.equal(s.overviewAutoSteps(), '200')
     assert.equal(s.defaultOverviewRange(), 'all')
@@ -495,6 +482,9 @@ describe('attach', () => {
     scope.emit({ status: 'ready', value: { insightsEntry: 'hide' }, writable: false })
     assert.equal(calls, 8)
     assert.equal(s.insightsEntry(), 'hide')
+    scope.emit({ status: 'ready', value: { defaultFileSort: 'count' }, writable: false })
+    assert.equal(calls, 9)
+    assert.equal(s.defaultFileSort(), 'count')
   })
 
   test('an identical scope snapshot does not notify listeners', () => {
@@ -555,7 +545,7 @@ describe('attach', () => {
       mode: 'total',
       deltaBase: 'step',
       toolSort: 'count',
-      fileSort: 'count',
+      fileSort: 'lines',
       insightsEntry: 'show',
       durationCurve: 'show',
       overviewAutoSteps: '200',

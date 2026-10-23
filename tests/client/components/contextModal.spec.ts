@@ -136,7 +136,6 @@ describe('ContextModal', () => {
     }))
     assert.ok(text(m.container).includes('deepseek-v4-flash · deepseek'))
 
-    // Hovering a composition segment flows into hoverCat (dim + legend chip).
     const compCard = query(m.container, '.lc-modal-card .lc-card')
     const seg = query(compCard, '.lc-stacked-seg')
     await hover(seg)
@@ -303,7 +302,6 @@ describe('ContextModal', () => {
     assert.equal(backdrop.style.left, '280px')
     assert.equal(backdrop.style.right, '360px')
 
-    // A sidebar rewrite while open (the right panel closed here) is followed through the observer on both edges.
     await act(async () => {
       frame.style.gridTemplateColumns = '56px minmax(0px, 1fr) minmax(0px, 0px)'
     })
@@ -461,7 +459,6 @@ describe('ContextModal — the split generation', () => {
       useContextModal: OPEN,
       useProjection: (key: string) => (key === 'contextTimeline' ? head : undefined),
     }))
-    // The composition card paints off the head while the browser's detail note shows.
     assert.ok(text(m.container).includes(DICT_EN['overview.title']))
     assert.ok(text(m.container).includes(DICT_EN['detail.loading']))
     await until(() => !text(m.container).includes(DICT_EN['detail.loading']), 'the modal detail never landed')
@@ -471,12 +468,10 @@ describe('ContextModal — the split generation', () => {
   })
 
   test('a mount that raced the declared inject heals when the face lands mid-open', async () => {
-    // The race: the modal mounts (and its fetchers snapshot the face) BEFORE
-    // `remote` composes — the degraded note shows — then the inject fires and
-    // the OPEN system section must auto-fetch without any user action.
+    // The race: the modal mounts and its fetchers snapshot the face BEFORE `remote` composes, so the
+    // degraded note shows; when the inject fires, the open system section must auto-fetch.
     const calls: { sessionId: string; throughSeq: number; beforeSeq: number }[] = []
     const ctx = new TestClientCtx({ services: { sessions: new TestSessions() } })
-    // Armed before either service exists: the inject stays pending, the race.
     watchHistoryFaces(asClientCtx(ctx))
     const ContextModal = makeContextModal(asClientCtx(ctx), kit, settings)
     const projections: Record<string, unknown> = {
@@ -493,9 +488,7 @@ describe('ContextModal — the split generation', () => {
     await click(sysRow)
     assert.ok(text(m.container).includes(DICT_EN['browser.headerMetaOnly']), 'the faceless mount shows the static note')
 
-    // The face lands mid-open (cordis replays the pending inject): the modal
-    // re-renders, the fetcher builds, and the open epoch fetches by itself.
-    // The face rides INSIDE the `remote` facade; the `remote.session` service key stays hostile, as on the real host.
+    // The face rides INSIDE the `remote` facade; the `remote.session` service key stays hostile.
     await act(async () => {
       ctx.setService('remote.session', { get page() { throw new Error('cannot get property "remote.session" without inject') } })
       ctx.setService('remote', {
@@ -516,7 +509,6 @@ describe('ContextModal — the split generation', () => {
     assert.ok(!text(m.container).includes(DICT_EN['browser.headerMetaOnly']))
     assert.deepEqual(calls, [{ sessionId: 'sm-race', throughSeq: 1, beforeSeq: 2 }])
     await m.unmount()
-    // Unload the declared slot so no face stales into the next test.
     ctx.dispose()
   })
 })

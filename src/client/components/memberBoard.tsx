@@ -1,12 +1,5 @@
-/**
- * The Fleet members board — every agent of the family in one panel, in two sections: the team's
- * roster as full cards (identity, duty, latest reply, live task count), then the family's other
- * agents (plain subagents, ancestors, siblings) as cards in the same form — their label in place
- * of a roster name, and the run's tokens/duration/steps in place of the duty line. The toolbar's
- * search, status filter, and sort steer both sections. A pick pins the agent (ringing its graph
- * node); a member card's task chip filters the task board to that owner; the open button jumps
- * to the session.
- */
+/** The Fleet members board: the team's roster as full cards, then the family's other agents in the same form. The
+ * toolbar's search/status/sort steer both sections; a pick pins the agent, a member's task chip filters the task board. */
 
 import { useMemo, useState, type CSSProperties, type ReactElement } from 'react'
 import { IconUserOutlineRegular, IconUsersOutlineRegular, StateDot } from '@deepseek-ai/dsh-client-ui-primitives'
@@ -22,7 +15,6 @@ export interface MemberBoardProps {
   forest: AgentForest
   /** The lead session's landed fleet detail — the roster facts (duty descriptions) live there. */
   leadDetail: FleetDetail | null
-  /** Landed details keyed by session id (latest replies ride them). */
   detailOf: (id: string) => { detail: FleetDetail | null } | undefined
   pinnedId: string | null
   /** Controlled hover (the graph's or task rows' hovered agent lifts its member card too). */
@@ -47,7 +39,6 @@ export function memberStyle(hue: string): CSSProperties {
   return { '--lc-member-hue': hue } as CSSProperties
 }
 
-/** The run's activity figures a surface carries: consumption, duration, then steps. */
 export function runMetaOf(node: AgentNode, t: ViewKit['t'], fmt: ViewKit['fmt']): string[] {
   const bits: string[] = []
   if (node.head !== null && node.head.tokens > 0) bits.push(fmt(node.head.tokens))
@@ -56,7 +47,6 @@ export function runMetaOf(node: AgentNode, t: ViewKit['t'], fmt: ViewKit['fmt'])
   return bits
 }
 
-/** The run's activity line above a card's foot — the graph cards' own meta readout. */
 function memberMeta(node: AgentNode, t: ViewKit['t'], fmt: ViewKit['fmt']): ReactElement | null {
   const bits = runMetaOf(node, t, fmt)
   if (bits.length === 0) return null
@@ -129,8 +119,8 @@ export function MemberBoard(props: MemberBoardProps): ReactElement {
     return c
   }, [forest])
 
-  // The toolbar earns its keep only with at least two entries to sift; a filtered-empty board
-  // keeps it so the reader can back out of the filter.
+  // The toolbar earns its keep only with at least two entries to sift; a filtered-empty board keeps it so the reader
+  // can back out of the filter.
   const listTotal = (team?.members.length ?? 0) + othersAll.length
   const bare = query === '' && status === 'all'
 
@@ -325,8 +315,7 @@ export function MemberBoard(props: MemberBoardProps): ReactElement {
                     <span className="lc-member-icon">
                       <IconUserOutlineRegular size={13} />
                     </span>
-                    {/* A subagent's prompt title IS its identity, and it runs long: two clamped
-                        lines where the roster name stays one. */}
+                    {/* A subagent's prompt title IS its identity and runs long: two clamped lines where a roster name is one. */}
                     <b className="lc-member-name lc-member-name-wrap" title={node.label}>{node.label}</b>
                     <StateDot
                       state={node.running ? 'ongoing' : node.completed ? 'done' : 'idle'}

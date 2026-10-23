@@ -20,7 +20,7 @@ function stubRoute(body: unknown): void {
   vi.stubGlobal('fetch', async () => ({ ok: true, json: async () => body }))
 }
 
-/** Leave the previous open's figure in storage, as that open would have. */
+/** Seed the figure a previous open would have left in storage. */
 function remember(balance: unknown): void {
   globalThis.localStorage.setItem(PLATFORM_BALANCE_STORAGE_KEY, JSON.stringify(balance))
 }
@@ -73,9 +73,8 @@ describe('BalanceCapsule', () => {
     assert.equal(pill?.getAttribute('rel'), 'noreferrer')
     assert.equal(query(m.container, '.lc-ov-balance-label')?.textContent, 'DeepSeek balance')
     assert.equal(query(m.container, '.lc-ov-balance-value')?.textContent, '$12.50')
-    // The breakdown lives in the pill's data attributes for the page's hover
-    // tip (no native `title`): the pill already carries the total, so only
-    // the non-zero parts ride the bubble — the topped-up line leads the granted one, and the tip drops below the pill.
+    // The breakdown rides data-* attributes for the page's hover tip (no native `title`): only the
+    // non-zero parts bubble, topped-up before granted, and the tip drops below the pill.
     assert.equal(pill?.getAttribute('title'), null)
     assert.equal(pill?.getAttribute('data-lc-tip'), 'Topped-up balance: $10.00\nGranted balance: $2.50')
     assert.equal(pill?.getAttribute('data-lc-tip-side'), 'bottom')
@@ -172,8 +171,6 @@ describe('BalanceCapsule — the fast close-reopen window (issue #82)', () => {
     const first = await mount(h(Capsule, {}))
     assert.equal(text(first.container), '', 'nothing remembered yet')
     await first.unmount()
-    // The reopen lands inside the first read's window: it joins the read —
-    // and settles on the landing figure exactly like the first open would.
     const Reopened = makeBalanceCapsule(asClientCtx(new TestClientCtx({ locale: 'en' })), kit)
     const second = await mount(h(Reopened, {}))
     assert.equal(text(second.container), '', 'the joined read has not landed yet')
